@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Modelo de Usuário
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  password          String
+  fullName          String
+  phoneNumber       String
+  dateOfBirth       DateTime
+  isEmailVerified   Boolean   @default(false)
+  isPhoneVerified   Boolean   @default(false)
+  userType          UserType  @default(RENTER)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime? // Soft delete
+
+  // Informações adicionais
+  nif               String?
+  idCardImage       String?
+  bankInfo          BankInfo?
+  address           Address?
+
+  // Relações
+  equipmentsOwned   Equipment[]    @relation("OwnerEquipments")
+  rentalsAsRenter   Rental[]       @relation("RenterRentals")
+  rentalsAsOwner    Rental[]       @relation("OwnerRentals")
+  reviews           Review[]
+}
+
+// Modelo de Informações Bancárias
+model BankInfo {
+  id              String    @id @default(uuid())
+  accountNumber   String
+  bankName        String
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime? // Soft delete
+}
+
+// Modelo de Endereço
+model Address {
+  id              String    @id @default(uuid())
+  street          String
+  number          String
+  district        String
+  city            String
+  province        String
+  latitude        Float?
+  longitude       Float?
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime? // Soft delete
+}
+
+// Modelo de Equipamento
+model Equipment {
+  id              String    @id @default(uuid())
+  name            String
+  description     String
+  category        String
+  dailyRate       Float
+  images          String[]
+  isAvailable     Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime? // Soft delete
+
+  // Relações
+  ownerId         String
+  owner           User      @relation("OwnerEquipments", fields: [ownerId], references: [id])
+  rentals         Rental[]
+  reviews         Review[]
+}
+
+// Modelo de Aluguel
+model Rental {
+  id              String        @id @default(uuid())
+  startDate       DateTime
+  endDate         DateTime
+  status          RentalStatus @default(PENDING)
+  totalAmount     Float
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  deletedAt       DateTime?    // Soft delete
+
+  // Relações
+  equipmentId     String
+  equipment       Equipment    @relation(fields: [equipmentId], references: [id])
+  renterId        String
+  renter          User        @relation("RenterRentals", fields: [renterId], references: [id])
+  ownerId         String
+  owner           User        @relation("OwnerRentals", fields: [ownerId], references: [id])
+}
+
+// Modelo de Avaliação
+model Review {
+  id              String    @id @default(uuid())
+  rating          Int
+  comment         String?
+  createdAt       DateTime  @default(now())
+  deletedAt       DateTime? // Soft delete
+
+  // Relações
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  equipmentId     String
+  equipment       Equipment @relation(fields: [equipmentId], references: [id])
+}
+
+enum UserType {
+  RENTER
+  OWNER
+  ADMIN
+}
+
+enum RentalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
