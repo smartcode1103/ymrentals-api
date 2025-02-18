@@ -8,7 +8,7 @@ async function bootstrap() {
 
   // Configuração do Swagger
   const config = new DocumentBuilder()
-    .setTitle('RentWise API')
+    .setTitle('YMRentals API')//
     .setDescription('API para plataforma de aluguel de equipamentos')
     .setVersion('1.0')
     .addBearerAuth() // Adiciona autenticação JWT no Swagger
