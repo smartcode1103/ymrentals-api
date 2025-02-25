@@ -70,13 +70,19 @@ export class UserService {
 
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });
-
+    console.log('Usuário encontrado:', user);
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials teste');
+    }
     /*if (!user || password !== user.password) {
       throw new UnauthorizedException('Invalid credentials');
     }*/
     // Comparando depois da descriptografia
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
+    const ValidacaoSenha = await bcrypt.compare(password, user.password);
+
+    console.log('Senha válida?', ValidacaoSenha); 
+  
+    if (!ValidacaoSenha) {
       throw new UnauthorizedException('Incorrect password');
     }
 
