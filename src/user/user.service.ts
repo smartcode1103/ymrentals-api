@@ -87,6 +87,11 @@ export class UserService {
     }
 
     const payload = { sub: user.id, email: user.email };
+    
+    //Verficar se os tokens de acesso estão a ser gerados
+    const token = this.jwtService.sign(payload);
+    console.log('Token de acesso:', token);
+    
     return { accessToken: this.jwtService.sign(payload) };
   }
 
