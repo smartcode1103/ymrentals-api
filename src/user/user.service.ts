@@ -72,7 +72,7 @@ export class UserService {
     const user = await this.prisma.user.findUnique({ where: { email } });
     console.log('Usuário encontrado:', user);
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials teste');
+      throw new UnauthorizedException('Invalid credentials');
     }
     /*if (!user || password !== user.password) {
       throw new UnauthorizedException('Invalid credentials');
