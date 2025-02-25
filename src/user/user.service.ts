@@ -77,7 +77,7 @@ export class UserService {
     // Comparando depois da descriptografia
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Incorrect password');
     }
 
     const payload = { sub: user.id, email: user.email };
