@@ -70,30 +70,32 @@ export class UserService {
 
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });
+    
     console.log('Usuário encontrado:', user);
+    
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Invalid credentials (User not found)');
     }
-    /*if (!user || password !== user.password) {
-      throw new UnauthorizedException('Invalid credentials');
-    }*/
-    // Comparando depois da descriptografia
-    const ValidacaoSenha = await bcrypt.compare(password, user.password);
-
-    console.log('Senha válida?', ValidacaoSenha); 
   
-    if (!ValidacaoSenha) {
+    console.log('Senha informada:', password);
+    console.log('Senha armazenada:', user.password);
+    
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    
+    console.log('Senha válida?', isPasswordValid);
+    
+    if (!isPasswordValid) {
       throw new UnauthorizedException('Incorrect password');
     }
-
+  
     const payload = { sub: user.id, email: user.email };
-    
-    //Verficar se os tokens de acesso estão a ser gerados
     const token = this.jwtService.sign(payload);
+  
     console.log('Token de acesso:', token);
     
-    return { accessToken: this.jwtService.sign(payload) };
+    return { accessToken: token };
   }
+  
 
   async logout() {
     // Simulação de logout, idealmente gerenciamos uma blacklist de tokens
