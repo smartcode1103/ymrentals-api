@@ -6,9 +6,11 @@ import {EquipmentModule} from './equipment/equipment.module'
 import {BankInfoModule} from './bankinfo/bank-info.module'
 import {AddressModule} from './address/address.module'
 import { PrismaModule } from './prisma/prisma.module';
+import { ChatModule } from './chat/chat.module';
+
 
 @Module({
   imports: [UserModule, ReviewModule, RentalModule, EquipmentModule, 
-    BankInfoModule, AddressModule, PrismaModule], // Importando UserModule e PrismaModule
+    BankInfoModule, AddressModule, PrismaModule, ChatModule], // Importando UserModule e PrismaModule
 })
 export class AppModule {}

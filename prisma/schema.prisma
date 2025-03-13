@@ -9,33 +9,91 @@ datasource db {
 
 // Modelo de Usuário
 model User {
-  id                String    @id @default(uuid())
-  email             String    @unique
+  id                String        @id @default(uuid())
+  email             String        @unique
   password          String
   fullName          String
   phoneNumber       String
   dateOfBirth       DateTime
-  isEmailVerified   Boolean   @default(false)
-  isPhoneVerified   Boolean   @default(false)
-  userType          UserType  @default(DEFAULT)
-  isBlocked         Boolean   @default(false) // Novo campo
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  deletedAt         DateTime? // Soft delete
+  isEmailVerified   Boolean       @default(false)
+  isPhoneVerified   Boolean       @default(false)
+  userType          UserType      @default(DEFAULT)
+  isBlocked         Boolean       @default(false)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  deletedAt         DateTime?
 
-  // Informações adicionais
-  nif               String?
-  idCardImage       String?
+  // Relações de Chat
+  chatsInitiated    Chat[]        @relation("ChatInitiator")
+  chatsReceived     Chat[]        @relation("ChatReceiver")
+  messages          Message[]
+
+  // Relação com BlockedUser
+  blockedUsers      BlockedUser[] @relation("Blocker")
+  blockedBy         BlockedUser[] @relation("Blocked")
+
+  // Relação com BankInfo
   bankInfo          BankInfo?
+
+  // Relação com Address
   address           Address?
 
-  // Relações
-  equipmentsOwned   Equipment[]    @relation("OwnerEquipments")
-  rentalsAsRenter   Rental[]       @relation("RenterRentals")
-  rentalsAsOwner    Rental[]       @relation("OwnerRentals")
+  // Relação com Equipment (Owner)
+  ownedEquipments   Equipment[]   @relation("OwnerEquipments")
+
+  // Relação com Rental (Renter)
+  renterRentals     Rental[]      @relation("RenterRentals")
+
+  // Relação com Rental (Owner)
+  ownerRentals      Rental[]      @relation("OwnerRentals")
+
+  // Relação com Review
   reviews           Review[]
-  reportsFiled      Report[]       @relation("FiledReports")
-  reportsReceived   Report[]       @relation("ReceivedReports")
+
+  // Relação com Report (Reported)
+  receivedReports   Report[]      @relation("ReceivedReports")
+
+  // Relação com Report (Reporter)
+  filedReports      Report[]      @relation("FiledReports")
+}
+
+// Modelo de Chat (Conversas)
+model Chat {
+  id             String    @id @default(uuid())
+  createdAt      DateTime  @default(now())
+  isBlocked      Boolean   @default(false)
+
+  // Relações
+  initiatorId    String
+  initiator      User      @relation("ChatInitiator", fields: [initiatorId], references: [id])
+  receiverId     String
+  receiver       User      @relation("ChatReceiver", fields: [receiverId], references: [id])
+  messages       Message[]
+}
+
+// Modelo de Mensagem
+model Message {
+  id          String    @id @default(uuid())
+  content     String
+  createdAt   DateTime  @default(now())
+
+  // Relações
+  chatId      String
+  chat        Chat      @relation(fields: [chatId], references: [id])
+  senderId    String
+  sender      User      @relation(fields: [senderId], references: [id])
+}
+
+// Modelo de Usuários Bloqueados
+model BlockedUser {
+  id          String   @id @default(uuid())
+  blockerId   String
+  blockedId   String
+  createdAt   DateTime @default(now())
+
+  // Relações
+  blocker     User     @relation("Blocker", fields: [blockerId], references: [id])
+  blocked     User     @relation("Blocked", fields: [blockedId], references: [id])
 }
 
 // Modelo de Informações Bancárias
@@ -47,7 +105,7 @@ model BankInfo {
   user            User      @relation(fields: [userId], references: [id])
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
-  deletedAt       DateTime? // Soft delete
+  deletedAt       DateTime?
 }
 
 // Modelo de Endereço
@@ -64,7 +122,7 @@ model Address {
   user            User      @relation(fields: [userId], references: [id])
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
-  deletedAt       DateTime? // Soft delete
+  deletedAt       DateTime?
 }
 
 // Modelo de Equipamento
@@ -78,7 +136,7 @@ model Equipment {
   isAvailable     Boolean   @default(true)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
-  deletedAt       DateTime? // Soft delete
+  deletedAt       DateTime?
 
   // Relações
   ownerId         String
@@ -92,19 +150,19 @@ model Rental {
   id              String        @id @default(uuid())
   startDate       DateTime
   endDate         DateTime
-  status          RentalStatus @default(PENDING)
+  status          RentalStatus  @default(PENDING)
   totalAmount     Float
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  deletedAt       DateTime?    // Soft delete
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
 
   // Relações
   equipmentId     String
-  equipment       Equipment    @relation(fields: [equipmentId], references: [id])
+  equipment       Equipment     @relation(fields: [equipmentId], references: [id])
   renterId        String
-  renter          User        @relation("RenterRentals", fields: [renterId], references: [id])
+  renter          User          @relation("RenterRentals", fields: [renterId], references: [id])
   ownerId         String
-  owner           User        @relation("OwnerRentals", fields: [ownerId], references: [id])
+  owner           User          @relation("OwnerRentals", fields: [ownerId], references: [id])
 }
 
 // Modelo de Avaliação
@@ -113,7 +171,7 @@ model Review {
   rating          Int
   comment         String?
   createdAt       DateTime  @default(now())
-  deletedAt       DateTime? // Soft delete
+  deletedAt       DateTime?
 
   // Relações
   userId          String
@@ -138,6 +196,7 @@ model Report {
   reporterUser    User      @relation("FiledReports", fields: [reporterUserId], references: [id])
 }
 
+// ENUMS
 enum UserType {
   DEFAULT
   MODERATOR
