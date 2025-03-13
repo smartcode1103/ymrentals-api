@@ -4,6 +4,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import { UserType } from '@prisma/client'; // Importando o enum do Prisma
 
 @Injectable()
 export class UserService {
@@ -19,9 +20,11 @@ export class UserService {
     });
   }
 
-  async findAll() {
+  async findAll(adminId: string) {
+    await this.ensureAdmin(adminId);
+  
     return this.prisma.user.findMany({
-      where: { deletedAt: null }, // Apenas usuários ativos
+      where: { deletedAt: null },
     });
   }
 
@@ -101,4 +104,97 @@ export class UserService {
     // Simulação de logout, idealmente gerenciamos uma blacklist de tokens
     return { message: 'User logged out successfully' };
   }
+
+  async blockUser(adminId: string, userId: string) {
+    await this.ensureAdmin(adminId); // Verifica se é ADMIN
+    await this.findOne(userId);
+  
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { isBlocked: true },
+    });
+  }
+  
+  async unblockUser(adminId: string, userId: string) {
+    await this.ensureAdmin(adminId);
+    await this.findOne(userId);
+  
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { isBlocked: false },
+    });
+  }
+  
+  async getBlockedUsers(adminId: string) {
+    await this.ensureAdmin(adminId);
+  
+    return this.prisma.user.findMany({
+      where: { isBlocked: true },
+    });
+  }
+
+  async reportUser(reportedUserId: string, reporterUserId: string, reportData: { reason: string; details: string; evidence: string[] }) {
+    const reportedUser = await this.findOne(reportedUserId);
+    
+    if (!reportedUser) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    // Verifica se todas as evidências são strings Base64 válidas
+    if (!reportData.evidence || !Array.isArray(reportData.evidence) || reportData.evidence.some(evidence => typeof evidence !== 'string')) {
+        throw new Error('Formato inválido para evidências. Deve ser um array de strings Base64.');
+    }
+
+    const report = await this.prisma.report.create({
+      data: {
+        reportedUserId,
+        reporterUserId,
+        reason: reportData.reason,
+        details: reportData.details,
+        evidence: reportData.evidence, // Salvar diretamente como array de Base64
+        createdAt: new Date(),
+      },
+    });
+
+    return {
+      status: "success",
+      message: "O relatório foi enviado com sucesso.",
+      reportId: report.id,
+      reportedUserId,
+      timestamp: report.createdAt,
+    };
+}
+
+
+  async changeUserRole(adminId: string, userId: string, newRole: string) {
+    await this.ensureAdmin(adminId);
+    await this.findOne(userId);
+  
+    const roleEnum = newRole.toUpperCase() as UserType;
+    if (!Object.values(UserType).includes(roleEnum)) {
+      throw new Error(`Invalid user role: ${newRole}`);
+    }
+  
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { userType: roleEnum },
+    });
+  }
+
+  async deletePermanently(adminId: string, userId: string) {
+    await this.ensureAdmin(adminId);
+    await this.findOne(userId);
+  
+    return this.prisma.user.delete({
+      where: { id: userId },
+    });
+  }
+  async ensureAdmin(adminId: string) {
+    const adminUser = await this.prisma.user.findUnique({ where: { id: adminId } });
+  
+    if (!adminUser || adminUser.userType !== UserType.ADMIN) {
+      throw new UnauthorizedException('Apenas administradores podem executar esta ação.');
+    }
+  }
+  
 }

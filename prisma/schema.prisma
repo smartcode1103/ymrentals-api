@@ -17,7 +17,8 @@ model User {
   dateOfBirth       DateTime
   isEmailVerified   Boolean   @default(false)
   isPhoneVerified   Boolean   @default(false)
-  userType          UserType  @default(RENTER)
+  userType          UserType  @default(DEFAULT)
+  isBlocked         Boolean   @default(false) // Novo campo
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   deletedAt         DateTime? // Soft delete
@@ -33,6 +34,8 @@ model User {
   rentalsAsRenter   Rental[]       @relation("RenterRentals")
   rentalsAsOwner    Rental[]       @relation("OwnerRentals")
   reviews           Review[]
+  reportsFiled      Report[]       @relation("FiledReports")
+  reportsReceived   Report[]       @relation("ReceivedReports")
 }
 
 // Modelo de Informações Bancárias
@@ -119,9 +122,25 @@ model Review {
   equipment       Equipment @relation(fields: [equipmentId], references: [id])
 }
 
+// Modelo de Reporte de Usuário
+model Report {
+  id              String    @id @default(uuid())
+  reason          String
+  details         String?
+  evidence        String[]
+  status          ReportStatus @default(PENDING)
+  createdAt       DateTime  @default(now())
+
+  // Relações
+  reportedUserId  String
+  reportedUser    User      @relation("ReceivedReports", fields: [reportedUserId], references: [id])
+  reporterUserId  String
+  reporterUser    User      @relation("FiledReports", fields: [reporterUserId], references: [id])
+}
+
 enum UserType {
-  RENTER
-  OWNER
+  DEFAULT
+  MODERATOR
   ADMIN
 }
 
@@ -132,4 +151,10 @@ enum RentalStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  REJECTED
 }
