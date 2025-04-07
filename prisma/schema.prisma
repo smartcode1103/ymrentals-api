@@ -132,7 +132,10 @@ model Equipment {
   description     String
   category        String
   dailyRate       Float
+  salePrice       Float?
   images          String[]
+  videos          String[]
+  specifications  Json?     // Dicionário de especificações
   isAvailable     Boolean   @default(true)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -144,6 +147,7 @@ model Equipment {
   rentals         Rental[]
   reviews         Review[]
 }
+
 
 // Modelo de Aluguel
 model Rental {
