@@ -7,8 +7,39 @@ export class EquipmentService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createEquipmentDto: CreateEquipmentDto) {
-    return this.prisma.equipment.create({ data: createEquipmentDto });
+    const {
+      name,
+      description,
+      category,
+      price,
+      pricePeriod,
+      salePrice,
+      images,
+      videos,
+      isAvailable,
+      ownerId,
+      specifications,
+      addressId,
+    } = createEquipmentDto;
+  
+    return this.prisma.equipment.create({
+      data: {
+        name,
+        description,
+        category,
+        price,
+        pricePeriod,
+        salePrice,
+        images,
+        videos,
+        isAvailable,
+        ownerId,
+        specifications,
+        addressId,
+      },
+    });
   }
+  
 
   async findAll() {
     return this.prisma.equipment.findMany({ where: { deletedAt: null } });

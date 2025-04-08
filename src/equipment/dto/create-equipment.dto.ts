@@ -6,7 +6,15 @@ import {
   IsArray,
   IsOptional,
   IsObject,
+  IsEnum,
 } from 'class-validator';
+
+export enum PricePeriod {
+  HOURLY = 'HOURLY',
+  DAILY = 'DAILY',
+  WEEKLY = 'WEEKLY',
+  MONTHLY = 'MONTHLY',
+}
 
 export class CreateEquipmentDto {
   @ApiProperty({ example: 'DJI Mavic Pro', description: 'Equipment name' })
@@ -21,9 +29,20 @@ export class CreateEquipmentDto {
   @IsString()
   category: string;
 
-  @ApiProperty({ example: 50.0, description: 'Daily rental rate' })
+  @ApiProperty({ example: 50.0, description: 'Rental price', required: false })
+  @IsOptional()
   @IsNumber()
-  dailyRate: number;
+  price?: number;
+
+  @ApiProperty({
+    example: 'DAILY',
+    enum: PricePeriod,
+    description: 'Rental price period (optional)',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(PricePeriod)
+  pricePeriod?: PricePeriod;
 
   @ApiProperty({ example: 1000.0, description: 'Sale price of the equipment', required: false })
   @IsOptional()
@@ -65,4 +84,9 @@ export class CreateEquipmentDto {
   @IsOptional()
   @IsObject()
   specifications?: Record<string, string>;
+
+  @ApiProperty({ example: 'uuid-address-id', description: 'Address ID (optional)', required: false })
+  @IsOptional()
+  @IsString()
+  addressId?: string;
 }
