@@ -26,4 +26,13 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   nif?: string;
+
+  @ApiProperty({
+    example: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD...',
+    description: 'Base64 encoded profile picture (optional)',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  profilePicture?: string;
 }

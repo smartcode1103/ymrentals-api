@@ -23,6 +23,8 @@ model User {
   updatedAt         DateTime      @updatedAt
   deletedAt         DateTime?
 
+  profilePicture    String?       // ← Novo campo adicionado aqui
+
   // Relações de Chat
   chatsInitiated    Chat[]        @relation("ChatInitiator")
   chatsReceived     Chat[]        @relation("ChatReceiver")
