@@ -14,10 +14,6 @@ export class AddressService {
     return this.prisma.address.findMany();
   }
 
-  async findByUserId(userId: string) {
-    return this.prisma.address.findMany({ where: { userId } });
-  }
-
   async findOne(id: string) {
     const address = await this.prisma.address.findUnique({ where: { id } });
     if (!address) throw new NotFoundException('Address not found');

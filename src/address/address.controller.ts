@@ -20,12 +20,6 @@ export class AddressController {
     return this.addressService.findAll();
   }
 
-  @Get('user/:userId')
-  @ApiOperation({ summary: 'Get addresses by user ID' })
-  async findByUserId(@Param('userId') userId: string) {
-    return this.addressService.findByUserId(userId);
-  }
-
   @Get(':id')
   @ApiOperation({ summary: 'Get address by ID' })
   async findOne(@Param('id') id: string) {
