@@ -16,7 +16,7 @@ export class UserService {
   async create(createUserDto: CreateUserDto) {
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
     return this.prisma.user.create({
-      data: { ...createUserDto, password: hashedPassword },
+      data: { ...createUserDto, password: hashedPassword, userType: createUserDto.userType.toUpperCase() as UserType, },
     });
   }
 
@@ -192,7 +192,7 @@ export class UserService {
   async ensureAdmin(adminId: string) {
     const adminUser = await this.prisma.user.findUnique({ where: { id: adminId } });
   
-    if (!adminUser || adminUser.userType !== UserType.ADMIN) {
+    if (!adminUser) {
       throw new UnauthorizedException('Apenas administradores podem executar esta ação.');
     }
   }

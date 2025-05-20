@@ -3,22 +3,27 @@ import { IsString, IsOptional, IsNumber } from 'class-validator';
 
 export class CreateAddressDto {
   @ApiProperty({ example: '123 Main St', description: 'Street name' })
+  @IsOptional()
   @IsString()
   street: string;
 
   @ApiProperty({ example: '42', description: 'House or apartment number' })
+  @IsOptional()
   @IsString()
   number: string;
 
   @ApiProperty({ example: 'Downtown', description: 'District name' })
+  @IsOptional()
   @IsString()
   district: string;
 
   @ApiProperty({ example: 'Lisbon', description: 'City' })
+  @IsOptional()
   @IsString()
   city: string;
 
   @ApiProperty({ example: 'Lisbon', description: 'Province' })
+  @IsOptional()
   @IsString()
   province: string;
 
@@ -31,8 +36,4 @@ export class CreateAddressDto {
   @IsOptional()
   @IsNumber()
   longitude?: number;
-
-  @ApiProperty({ example: 'uuid-user-id', description: 'User ID associated with the address' })
-  @IsString()
-  userId: string;
 }

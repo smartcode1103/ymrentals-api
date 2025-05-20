@@ -89,4 +89,14 @@ export class CreateEquipmentDto {
   @IsOptional()
   @IsString()
   addressId?: string;
+
+  @ApiProperty({
+    example: ['data:application/pdf;base64,JVBERi0xLjcKJYGBgYEK...', 'data:image/png;base64,...'],
+    description: 'Array of base64 encoded documents (optional)',
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  documents?: string[];
 }

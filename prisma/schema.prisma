@@ -15,14 +15,16 @@ model User {
   fullName          String
   phoneNumber       String
   dateOfBirth       DateTime
-  isEmailVerified   Boolean       @default(false)
-  isPhoneVerified   Boolean       @default(false)
-  userType          UserType      @default(DEFAULT)
+  isEmailVerified   Boolean           @default(false)
+  isPhoneVerified   Boolean           @default(false)
+  userType          UserType      
   isBlocked         Boolean       @default(false)
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   deletedAt         DateTime?
-
+  isCompany         Boolean @default(false)//new
+  nif               String? //new
+  companyDocuments  String[] //new
   profilePicture    String?       // ← Novo campo adicionado aqui
 
   // Relações de Chat
@@ -34,11 +36,9 @@ model User {
   blockedUsers      BlockedUser[] @relation("Blocker")
   blockedBy         BlockedUser[] @relation("Blocked")
 
-  // Relação com BankInfo
-  bankInfo          BankInfo?
-
   // Relação com Address
-  address           Address?
+  addressId       String?
+  address         Address?  @relation(fields: [addressId], references: [id])
 
   // Relação com Equipment (Owner)
   ownedEquipments   Equipment[]   @relation("OwnerEquipments")
@@ -98,49 +98,39 @@ model BlockedUser {
   blocked     User     @relation("Blocked", fields: [blockedId], references: [id])
 }
 
-// Modelo de Informações Bancárias
-model BankInfo {
-  id              String    @id @default(uuid())
-  accountNumber   String
-  bankName        String
-  userId          String    @unique
-  user            User      @relation(fields: [userId], references: [id])
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  deletedAt       DateTime?
-}
 
 // Modelo de Endereço
 model Address {
   id              String    @id @default(uuid())
-  street          String
-  number          String
-  district        String
-  city            String
-  province        String
+  street          String?
+  number          String?
+  district        String?
+  city            String?
+  province        String?
   latitude        Float?
   longitude       Float?
-  userId          String    @unique
-  user            User      @relation(fields: [userId], references: [id])
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   deletedAt       DateTime?
 
     // Relação inversa com Equipment
   equipments      Equipment[]
+  // Relação inversa com User
+  users           User[]
 }
 
 // Modelo de Equipamento
 model Equipment {
   id              String    @id @default(uuid())
   name            String
-  description     String
+  description     String?
   category        String
   pricePeriod     PricePeriod?
   price           Float?
   salePrice       Float?
   images          String[]
   videos          String[]
+  documents       String[] //new
   specifications  Json?
   isAvailable     Boolean   @default(true)
   createdAt       DateTime  @default(now())
@@ -210,9 +200,8 @@ model Report {
 
 // ENUMS
 enum UserType {
-  DEFAULT
-  MODERATOR
-  ADMIN
+  LANDLORD  // locador
+  TENANT // locatário
 }
 
 enum RentalStatus {
