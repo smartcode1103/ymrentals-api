@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class ChatService {
@@ -10,13 +11,18 @@ export class ChatService {
       where: {
         OR: [{ initiatorId: userId }, { receiverId: userId }],
       },
-      include: { messages: true, initiator: true, receiver: true },
+      include: {
+        Message: true,
+        User_Chat_initiatorIdToUser: true,
+        User_Chat_receiverIdToUser: true
+      },
     });
   }
 
   async startChat(userId: string, participantId: string) {
     return this.prisma.chat.create({
       data: {
+        id: uuidv4(),
         initiatorId: userId,
         receiverId: participantId,
       },
@@ -26,14 +32,14 @@ export class ChatService {
   async getMessages(chatId: string) {
     const chat = await this.prisma.chat.findUnique({
       where: { id: chatId },
-      include: { messages: true },
+      include: { Message: true },
     });
 
     if (!chat) {
       throw new NotFoundException('Chat não encontrado');
     }
 
-    return chat.messages;
+    return chat.Message;
   }
 
   async sendMessage(chatId: string, senderId: string, content: string) {
@@ -45,6 +51,7 @@ export class ChatService {
 
     return this.prisma.message.create({
       data: {
+        id: uuidv4(),
         content,
         chatId,
         senderId,
@@ -77,6 +84,7 @@ export class ChatService {
 
     return this.prisma.blockedUser.create({
       data: {
+        id: uuidv4(),
         blockerId,
         blockedId: userIdToBlock,
       },

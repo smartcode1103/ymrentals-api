@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './jwt.strategy';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { JwtStrategy } from './jwt.strategy';
       secret: process.env.JWT_SECRET || 'secretKey',
       signOptions: { expiresIn: '1h' }, // Token expira em 1 hora
     }),
+    NotificationsModule,
   ],
   controllers: [UserController],
   providers: [UserService, PrismaService, JwtStrategy],

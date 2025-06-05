@@ -39,6 +39,14 @@ export class UserController {
     return this.userService.logout();
   }
 
+  @Get('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current user profile' })
+  async getProfile(@Request() req) {
+    return this.userService.findOne(req.user.userId);
+  }
+
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @Get()
@@ -61,6 +69,41 @@ export class UserController {
   @ApiOperation({ summary: 'Update user' })
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(id, updateUserDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Post(':id/verify-email')
+  @ApiOperation({ summary: 'Send email verification' })
+  async sendEmailVerification(@Param('id') id: string) {
+    return this.userService.sendEmailVerification(id);
+  }
+
+  @Post('verify-email/:token')
+  @ApiOperation({ summary: 'Verify email with token' })
+  async verifyEmail(@Param('token') token: string) {
+    return this.userService.verifyEmail(token);
+  }
+
+  // Endpoints para moderadores validarem BI
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Get('pending-bi-validation')
+  @ApiOperation({ summary: 'Get users with pending BI validation (Moderator only)' })
+  async getPendingBiValidation(@Request() req) {
+    return this.userService.getPendingBiValidation(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Patch(':id/validate-bi')
+  @ApiOperation({ summary: 'Validate user BI document (Moderator only)' })
+  async validateBi(
+    @Param('id') userId: string,
+    @Body() body: { approved: boolean; reason?: string },
+    @Request() req
+  ) {
+    return this.userService.validateBi(req.user.userId, userId, body.approved, body.reason);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -128,4 +171,44 @@ export class UserController {
   async changeUserRole(@Request() req, @Param('id') userId: string, @Body() body) {
     return this.userService.changeUserRole(req.user.id, userId, body.newRole);
   }
+
+  // Endpoints para moderadores
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Post('moderators')
+  @ApiOperation({ summary: 'Create a new moderator (Admin/Manager only)' })
+  async createModerator(@Body() moderatorData: any, @Request() req) {
+    return this.userService.createModerator(req.user.userId, moderatorData);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Get('moderators')
+  @ApiOperation({ summary: 'Get all moderators (Admin/Manager only)' })
+  async getModerators(@Request() req) {
+    return this.userService.getModerators(req.user.userId);
+  }
+
+  // Endpoints para validação de landlords
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Get('landlords/pending')
+  @ApiOperation({ summary: 'Get pending landlords for validation (Admin/Manager only)' })
+  async getPendingLandlords(@Request() req) {
+    return this.userService.getPendingLandlords(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Patch('landlords/:id/validate')
+  @ApiOperation({ summary: 'Validate landlord registration (Admin/Manager only)' })
+  async validateLandlord(
+    @Param('id') landlordId: string,
+    @Body() body: { approved: boolean; reason?: string },
+    @Request() req
+  ) {
+    return this.userService.validateLandlord(req.user.userId, landlordId, body.approved, body.reason);
+  }
+
+
 }

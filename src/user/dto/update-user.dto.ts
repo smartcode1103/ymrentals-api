@@ -4,6 +4,8 @@ import {
   IsBoolean,
   IsOptional,
   IsArray,
+  IsEmail,
+  IsDateString,
 } from 'class-validator';
 
 export class UpdateUserDto {
@@ -11,6 +13,26 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   fullName?: string;
+
+  @ApiProperty({ example: 'user@example.com', description: 'User email', required: false })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @ApiProperty({ example: '+244923456789', description: 'Phone number', required: false })
+  @IsOptional()
+  @IsString()
+  phoneNumber?: string;
+
+  @ApiProperty({ example: '1990-05-20', description: 'Date of birth', required: false })
+  @IsOptional()
+  @IsDateString()
+  dateOfBirth?: string;
+
+  @ApiProperty({ example: 'SecurePassword123!', description: 'New password', required: false })
+  @IsOptional()
+  @IsString()
+  password?: string;
 
   @ApiProperty({ example: 'true', description: 'Email verification status', required: false })
   @IsOptional()
@@ -58,4 +80,44 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean()
   isCompany?: boolean;
+
+  @ApiProperty({ example: 'Company Name Ltd', description: 'Company name', required: false })
+  @IsOptional()
+  @IsString()
+  companyName?: string;
+
+  @ApiProperty({ example: 'Rua da Empresa, 123', description: 'Company address', required: false })
+  @IsOptional()
+  @IsString()
+  companyAddress?: string;
+
+  @ApiProperty({ example: 'LDA', description: 'Company type', required: false })
+  @IsOptional()
+  @IsString()
+  companyType?: string;
+
+  @ApiProperty({ example: 'data:image/jpeg;base64,...', description: 'Company cover image', required: false })
+  @IsOptional()
+  @IsString()
+  companyCoverImage?: string;
+
+  @ApiProperty({ example: 'Software Engineer', description: 'User occupation', required: false })
+  @IsOptional()
+  @IsString()
+  occupation?: string;
+
+  @ApiProperty({ example: 'Luanda, Angola', description: 'User location', required: false })
+  @IsOptional()
+  @IsString()
+  location?: string;
+
+  @ApiProperty({ example: 'About me...', description: 'User biography', required: false })
+  @IsOptional()
+  @IsString()
+  bio?: string;
+
+  @ApiProperty({ example: 'document.pdf', description: 'BI document URL', required: false })
+  @IsOptional()
+  @IsString()
+  biDocument?: string;
 }
