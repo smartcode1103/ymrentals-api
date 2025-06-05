@@ -7,210 +7,342 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Modelo de Usuário
 model User {
-  id                String        @id @default(uuid())
-  email             String        @unique
-  password          String
-  fullName          String
-  phoneNumber       String
-  dateOfBirth       DateTime
-  isEmailVerified   Boolean           @default(false)
-  isPhoneVerified   Boolean           @default(false)
-  userType          UserType      
-  isBlocked         Boolean       @default(false)
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  deletedAt         DateTime?
-  isCompany         Boolean @default(false)//new
-  nif               String? //new
-  companyDocuments  String[] //new
-  profilePicture    String?       // ← Novo campo adicionado aqui
-
-  // Relações de Chat
-  chatsInitiated    Chat[]        @relation("ChatInitiator")
-  chatsReceived     Chat[]        @relation("ChatReceiver")
-  messages          Message[]
-
-  // Relação com BlockedUser
-  blockedUsers      BlockedUser[] @relation("Blocker")
-  blockedBy         BlockedUser[] @relation("Blocked")
-
-  // Relação com Address
-  addressId       String?
-  address         Address?  @relation(fields: [addressId], references: [id])
-
-  // Relação com Equipment (Owner)
-  ownedEquipments   Equipment[]   @relation("OwnerEquipments")
-
-  // Relação com Rental (Renter)
-  renterRentals     Rental[]      @relation("RenterRentals")
-
-  // Relação com Rental (Owner)
-  ownerRentals      Rental[]      @relation("OwnerRentals")
-
-  // Relação com Review
-  reviews           Review[]
-
-  // Relação com Report (Reported)
-  receivedReports   Report[]      @relation("ReceivedReports")
-
-  // Relação com Report (Reporter)
-  filedReports      Report[]      @relation("FiledReports")
+  id                                      String          @id @default(uuid())
+  email                                   String          @unique
+  password                                String
+  fullName                                String
+  phoneNumber                             String
+  dateOfBirth                             DateTime
+  isEmailVerified                         Boolean         @default(false)
+  isPhoneVerified                         Boolean         @default(false)
+  userType                                UserType        @default(TENANT)
+  isBlocked                               Boolean         @default(false)
+  createdAt                               DateTime        @default(now())
+  updatedAt                               DateTime        @updatedAt
+  deletedAt                               DateTime?
+  isCompany                               Boolean         @default(false)
+  nif                                     String?
+  companyDocuments                        String[]
+  profilePicture                          String?
+  addressId                               String?
+  accountStatus                           AccountStatus   @default(PENDING)
+  approvedAt                              DateTime?
+  approvedBy                              String?
+  companyAddress                          String?
+  companyDocument                         String?
+  companyName                             String?
+  companyType                             CompanyType?
+  companyCoverImage                       String?
+  createdBy                               String?
+  rejectedAt                              DateTime?
+  rejectedBy                              String?
+  rejectionReason                         String?
+  role                                    UserRole        @default(USER)
+  occupation                              String?
+  location                                String?
+  bio                                     String?
+  biDocument                              String?
+  biValidated                             Boolean         @default(false)
+  biValidatedBy                           String?
+  biValidatedAt                           DateTime?
+  biRejectionReason                       String?
+  emailVerificationToken                  String?
+  emailVerificationExpires                DateTime?
+  BlockedUser_BlockedUser_blockedIdToUser BlockedUser[]   @relation("BlockedUser_blockedIdToUser")
+  BlockedUser_BlockedUser_blockerIdToUser BlockedUser[]   @relation("BlockedUser_blockerIdToUser")
+  Chat_Chat_initiatorIdToUser             Chat[]          @relation("Chat_initiatorIdToUser")
+  Chat_Chat_receiverIdToUser              Chat[]          @relation("Chat_receiverIdToUser")
+  ownedEquipments                         Equipment[]     @relation("OwnerEquipments")
+  Favorite                                Favorite[]
+  Message                                 Message[]
+  ownerRentals                            Rental[]        @relation("OwnerRentals")
+  renterRentals                           Rental[]        @relation("RenterRentals")
+  moderatedRentals                        Rental[]        @relation("ModeratedRentals")
+  Report_Report_reportedUserIdToUser      Report[]        @relation("Report_reportedUserIdToUser")
+  Report_Report_reporterUserIdToUser      Report[]        @relation("Report_reporterUserIdToUser")
+  reviews                                 Review[]
+  Upload                                  Upload[]
+  Address                                 Address?        @relation(fields: [addressId], references: [id])
+  notifications                           notifications[]
+  moderatedEquipmentEdits                 EquipmentEdit[] @relation("EquipmentEditModerator")
 }
 
-// Modelo de Chat (Conversas)
-model Chat {
-  id             String    @id @default(uuid())
-  createdAt      DateTime  @default(now())
-  isBlocked      Boolean   @default(false)
-
-  // Relações
-  initiatorId    String
-  initiator      User      @relation("ChatInitiator", fields: [initiatorId], references: [id])
-  receiverId     String
-  receiver       User      @relation("ChatReceiver", fields: [receiverId], references: [id])
-  messages       Message[]
-}
-
-// Modelo de Mensagem
-model Message {
-  id          String    @id @default(uuid())
-  content     String
-  createdAt   DateTime  @default(now())
-
-  // Relações
-  chatId      String
-  chat        Chat      @relation(fields: [chatId], references: [id])
-  senderId    String
-  sender      User      @relation(fields: [senderId], references: [id])
-}
-
-// Modelo de Usuários Bloqueados
-model BlockedUser {
-  id          String   @id @default(uuid())
-  blockerId   String
-  blockedId   String
-  createdAt   DateTime @default(now())
-
-  // Relações
-  blocker     User     @relation("Blocker", fields: [blockerId], references: [id])
-  blocked     User     @relation("Blocked", fields: [blockedId], references: [id])
-}
-
-
-// Modelo de Endereço
 model Address {
-  id              String    @id @default(uuid())
-  street          String?
-  number          String?
-  district        String?
-  city            String?
-  province        String?
-  latitude        Float?
-  longitude       Float?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  deletedAt       DateTime?
-
-    // Relação inversa com Equipment
-  equipments      Equipment[]
-  // Relação inversa com User
-  users           User[]
+  id        String      @id @default(uuid())
+  street    String?
+  number    String?
+  district  String?
+  city      String?
+  province  String?
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  deletedAt DateTime?
+  Equipment Equipment[]
+  User      User[]
 }
 
-// Modelo de Equipamento
 model Equipment {
-  id              String    @id @default(uuid())
-  name            String
-  description     String?
-  category        String
-  pricePeriod     PricePeriod?
-  price           Float?
-  salePrice       Float?
-  images          String[]
-  videos          String[]
-  documents       String[] //new
-  specifications  Json?
-  isAvailable     Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  deletedAt       DateTime?
-
-  // Relações
-  ownerId         String
-  owner           User      @relation("OwnerEquipments", fields: [ownerId], references: [id])
-  rentals         Rental[]
-  reviews         Review[]
-  addressId       String?
-  address         Address?  @relation(fields: [addressId], references: [id])
+  id               String          @id @default(uuid())
+  name             String
+  description      String?
+  category         String          // Manter para compatibilidade
+  categoryId       String?         // Nova relação com Category
+  pricePeriod      PricePeriod?
+  price            Float?
+  salePrice        Float?
+  images           String[]
+  videos           String[]
+  documents        String[]
+  specifications   Json?
+  isAvailable      Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  deletedAt        DateTime?
+  ownerId          String
+  addressId        String?
+  moderatedAt      DateTime?
+  moderatedBy      String?
+  moderationStatus EquipmentStatus @default(PENDING)
+  rejectionReason  String?
+  Address          Address?        @relation(fields: [addressId], references: [id])
+  owner            User            @relation("OwnerEquipments", fields: [ownerId], references: [id])
+  Category         Category?       @relation(fields: [categoryId], references: [id])
+  Favorite         Favorite[]
+  rentals          Rental[]
+  reviews          Review[]
+  edits            EquipmentEdit[]
 }
 
-
-// Modelo de Aluguel
 model Rental {
-  id              String        @id @default(uuid())
-  startDate       DateTime
-  endDate         DateTime
-  status          RentalStatus  @default(PENDING)
-  totalAmount     Float
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  deletedAt       DateTime?
-
-  // Relações
-  equipmentId     String
-  equipment       Equipment     @relation(fields: [equipmentId], references: [id])
-  renterId        String
-  renter          User          @relation("RenterRentals", fields: [renterId], references: [id])
-  ownerId         String
-  owner           User          @relation("OwnerRentals", fields: [ownerId], references: [id])
+  id                    String       @id @default(uuid())
+  startDate             DateTime
+  endDate               DateTime
+  startTime             String?      // Hora de início (formato HH:mm)
+  endTime               String?      // Hora de fim (formato HH:mm)
+  status                RentalStatus @default(PENDING)
+  totalAmount           Float
+  dailyRate             Float?       // Taxa diária
+  pricePeriod           PricePeriod? // Período de precário
+  maxRentalDays         Int?         // Limite máximo de dias de aluguel
+  paymentMethod         PaymentMethod @default(RECEIPT)
+  paymentStatus         PaymentStatus @default(PENDING)
+  paymentReference      String?      // Referência de pagamento
+  paymentReceipt        String?      // URL do comprovativo de pagamento
+  paymentReceiptStatus  PaymentReceiptStatus @default(PENDING)
+  moderatedBy           String?      // ID do moderador que validou o pagamento
+  moderatedAt           DateTime?    // Data de moderação do pagamento
+  returnNotificationSent Boolean     @default(false)
+  returnReminderDate    DateTime?    // Data para enviar lembrete de devolução
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  deletedAt             DateTime?
+  equipmentId           String
+  renterId              String
+  ownerId               String
+  equipment             Equipment    @relation(fields: [equipmentId], references: [id])
+  owner                 User         @relation("OwnerRentals", fields: [ownerId], references: [id])
+  renter                User         @relation("RenterRentals", fields: [renterId], references: [id])
+  moderator             User?        @relation("ModeratedRentals", fields: [moderatedBy], references: [id])
 }
 
-// Modelo de Avaliação
 model Review {
-  id              String    @id @default(uuid())
-  rating          Int
-  comment         String?
-  createdAt       DateTime  @default(now())
-  deletedAt       DateTime?
-
-  // Relações
-  userId          String
-  user            User      @relation(fields: [userId], references: [id])
-  equipmentId     String
-  equipment       Equipment @relation(fields: [equipmentId], references: [id])
+  id          String    @id @default(uuid())
+  rating      Int
+  comment     String?
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
+  userId      String
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
 }
 
-// Modelo de Reporte de Usuário
+model BlockedUser {
+  id                               String   @id
+  blockerId                        String
+  blockedId                        String
+  createdAt                        DateTime @default(now())
+  User_BlockedUser_blockedIdToUser User     @relation("BlockedUser_blockedIdToUser", fields: [blockedId], references: [id])
+  User_BlockedUser_blockerIdToUser User     @relation("BlockedUser_blockerIdToUser", fields: [blockerId], references: [id])
+}
+
+model Chat {
+  id                          String    @id
+  createdAt                   DateTime  @default(now())
+  isBlocked                   Boolean   @default(false)
+  initiatorId                 String
+  receiverId                  String
+  User_Chat_initiatorIdToUser User      @relation("Chat_initiatorIdToUser", fields: [initiatorId], references: [id])
+  User_Chat_receiverIdToUser  User      @relation("Chat_receiverIdToUser", fields: [receiverId], references: [id])
+  Message                     Message[]
+}
+
+model Favorite {
+  id          String    @id
+  createdAt   DateTime  @default(now())
+  userId      String
+  equipmentId String
+  Equipment   Equipment @relation(fields: [equipmentId], references: [id])
+  User        User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, equipmentId])
+}
+
+model Message {
+  id        String   @id
+  content   String
+  createdAt DateTime @default(now())
+  chatId    String
+  senderId  String
+  Chat      Chat     @relation(fields: [chatId], references: [id])
+  User      User     @relation(fields: [senderId], references: [id])
+}
+
 model Report {
-  id              String    @id @default(uuid())
-  reason          String
-  details         String?
-  evidence        String[]
-  status          ReportStatus @default(PENDING)
-  createdAt       DateTime  @default(now())
-
-  // Relações
-  reportedUserId  String
-  reportedUser    User      @relation("ReceivedReports", fields: [reportedUserId], references: [id])
-  reporterUserId  String
-  reporterUser    User      @relation("FiledReports", fields: [reporterUserId], references: [id])
+  id                               String       @id
+  reason                           String
+  details                          String?
+  evidence                         String[]
+  status                           ReportStatus @default(PENDING)
+  createdAt                        DateTime     @default(now())
+  reportedUserId                   String
+  reporterUserId                   String
+  User_Report_reportedUserIdToUser User         @relation("Report_reportedUserIdToUser", fields: [reportedUserId], references: [id])
+  User_Report_reporterUserIdToUser User         @relation("Report_reporterUserIdToUser", fields: [reporterUserId], references: [id])
 }
 
-// ENUMS
+model Upload {
+  id           String   @id
+  filename     String   @unique
+  originalName String
+  mimetype     String
+  size         Int
+  path         String
+  type         String
+  url          String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime
+  userId       String
+  User         User     @relation(fields: [userId], references: [id])
+}
+
+model notifications {
+  id        String           @id
+  userId    String
+  title     String
+  message   String
+  type      NotificationType @default(INFO)
+  data      String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime
+  deletedAt DateTime?
+  User      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 enum UserType {
-  LANDLORD  // locador
-  TENANT // locatário
+  LANDLORD
+  TENANT
 }
 
 enum RentalStatus {
   PENDING
   APPROVED
   REJECTED
-  IN_PROGRESS
+  PAID
+  ACTIVE
   COMPLETED
   CANCELLED
+}
+
+enum AccountStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum CompanyType {
+  INDIVIDUAL
+  COMPANY
+  NGO
+}
+
+enum EquipmentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
+model Category {
+  id          String      @id @default(uuid())
+  name        String      @unique
+  description String?
+  icon        String?
+  image       String?
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  Equipment   Equipment[]
+
+  @@map("categories")
+}
+
+model Content {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  title     String
+  content   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("contents")
+}
+
+model EquipmentEdit {
+  id               String                @id @default(uuid())
+  equipmentId      String
+  name             String?
+  description      String?
+  category         String?
+  categoryId       String?
+  pricePeriod      PricePeriod?
+  price            Float?
+  salePrice        Float?
+  images           String[]
+  videos           String[]
+  documents        String[]
+  specifications   Json?
+  isAvailable      Boolean?
+  addressId        String?
+  status           EquipmentEditStatus   @default(PENDING)
+  moderatedAt      DateTime?
+  moderatedBy      String?
+  rejectionReason  String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  equipment        Equipment             @relation(fields: [equipmentId], references: [id])
+  moderator        User?                 @relation("EquipmentEditModerator", fields: [moderatedBy], references: [id])
+
+  @@map("equipment_edits")
+}
+
+enum PricePeriod {
+  HOURLY
+  DAILY
+  WEEKLY
+  MONTHLY
 }
 
 enum ReportStatus {
@@ -218,9 +350,34 @@ enum ReportStatus {
   REVIEWED
   REJECTED
 }
-enum PricePeriod {
-  HOURLY
-  DAILY
-  WEEKLY
-  MONTHLY
+
+enum UserRole {
+  USER
+  MODERATOR
+  MODERATOR_MANAGER
+  ADMIN
+}
+
+enum EquipmentEditStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PaymentMethod {
+  REFERENCE
+  RECEIPT
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentReceiptStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
