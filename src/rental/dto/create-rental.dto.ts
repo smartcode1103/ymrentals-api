@@ -1,13 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNumber, IsDateString, IsOptional, IsEnum, IsInt, Min, Max } from 'class-validator';
+import { IsString, IsNumber, IsDateString, IsOptional, IsEnum, IsInt, Min, Max, Validate } from 'class-validator';
+import { IsValidDateRange } from '../../cart/validators/date-range.validator';
 
 export class CreateRentalDto {
   @ApiProperty({ example: '2024-03-01', description: 'Rental start date', type: String, format: 'date' })
   @IsDateString()
+  @Validate(IsValidDateRange, { message: 'Invalid start date' })
   startDate!: string;
 
   @ApiProperty({ example: '2024-03-05', description: 'Rental end date', type: 'string', format: 'date' })
   @IsDateString()
+  @Validate(IsValidDateRange, { message: 'Invalid end date' })
   endDate!: string;
 
   @ApiProperty({ example: '09:00', description: 'Start time (HH:mm format)', required: false })
@@ -53,12 +56,4 @@ export class CreateRentalDto {
   @ApiProperty({ example: 'uuid-equipment-id', description: 'Rented equipment ID' })
   @IsString()
   equipmentId!: string;
-
-  @ApiProperty({ example: 'uuid-renter-id', description: 'Renter user ID' })
-  @IsString()
-  renterId!: string;
-
-  @ApiProperty({ example: 'uuid-owner-id', description: 'Owner user ID' })
-  @IsString()
-  ownerId!: string;
 }

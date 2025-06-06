@@ -56,6 +56,7 @@ model User {
   ownedEquipments                         Equipment[]     @relation("OwnerEquipments")
   moderatedEquipments                     Equipment[]     @relation("ModeratedEquipments")
   Favorite                                Favorite[]
+  Cart                                    Cart[]
   Message                                 Message[]
   ownerRentals                            Rental[]        @relation("OwnerRentals")
   renterRentals                           Rental[]        @relation("RenterRentals")
@@ -113,6 +114,7 @@ model Equipment {
   moderatedByUser  User?           @relation("ModeratedEquipments", fields: [moderatedBy], references: [id])
   Category         Category?       @relation(fields: [categoryId], references: [id])
   Favorite         Favorite[]
+  Cart             Cart[]
   rentals          Rental[]
   reviews          Review[]
   edits            EquipmentEdit[]
@@ -187,6 +189,22 @@ model Favorite {
   createdAt   DateTime  @default(now())
   userId      String
   equipmentId String
+  Equipment   Equipment @relation(fields: [equipmentId], references: [id])
+  User        User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, equipmentId])
+}
+
+model Cart {
+  id          String    @id @default(uuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      String
+  equipmentId String
+  quantity    Int       @default(1)
+  startDate   DateTime?
+  endDate     DateTime?
+  period      String?   // 'HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY'
   Equipment   Equipment @relation(fields: [equipmentId], references: [id])
   User        User      @relation(fields: [userId], references: [id])
 

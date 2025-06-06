@@ -8,6 +8,8 @@ export class RentalService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createRentalDto: CreateRentalDto & { renterId: string }) {
+    console.log('Creating rental with data:', createRentalDto);
+
     // Verificar se o equipamento existe e está disponível
     const equipment = await this.prisma.equipment.findUnique({
       where: { id: createRentalDto.equipmentId, deletedAt: null },
@@ -92,16 +94,23 @@ export class RentalService {
 
     const rental = await this.prisma.rental.create({
       data: {
-        ...createRentalDto,
+        equipmentId: createRentalDto.equipmentId,
+        renterId: createRentalDto.renterId,
         ownerId: equipment.ownerId,
+        startDate: new Date(createRentalDto.startDate),
+        endDate: new Date(createRentalDto.endDate),
+        startTime: createRentalDto.startTime,
+        endTime: createRentalDto.endTime,
         totalAmount,
         dailyRate,
+        maxRentalDays: createRentalDto.maxRentalDays,
+        paymentMethod: createRentalDto.paymentMethod as any,
+        paymentReference: createRentalDto.paymentReference,
         returnReminderDate,
         status: 'PENDING',
         paymentStatus: 'PENDING',
         paymentReceiptStatus: createRentalDto.paymentMethod === 'RECEIPT' ? 'PENDING' : undefined,
-        pricePeriod: createRentalDto.pricePeriod as any || equipment.pricePeriod as any,
-        paymentMethod: createRentalDto.paymentMethod as any
+        pricePeriod: createRentalDto.pricePeriod as any || equipment.pricePeriod as any
       },
       include: {
         equipment: {

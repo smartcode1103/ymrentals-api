@@ -93,10 +93,10 @@ export class RentalController {
   @ApiOperation({ summary: 'Upload payment receipt' })
   async uploadPaymentReceipt(
     @Param('id') id: string,
-    @Body('receiptUrl') receiptUrl: string,
+    @Body() receiptData: { paymentReceipt: string; paymentMethod: string },
     @Request() req
   ) {
-    return this.rentalService.uploadPaymentReceipt(id, receiptUrl, req.user.userId);
+    return this.rentalService.uploadPaymentReceipt(id, receiptData.paymentReceipt, req.user.userId);
   }
 
   @Patch(':id/validate-payment')
