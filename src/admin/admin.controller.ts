@@ -4,6 +4,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../user/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { ModerateEquipmentEditDto } from './dto/moderate-equipment-edit.dto';
 
 @ApiTags('Admin')
 @Controller('admin')
@@ -211,8 +212,19 @@ export class AdminController {
   @Get('equipment-edits')
   @Roles('ADMIN', 'MODERATOR_MANAGER', 'MODERATOR')
   @ApiOperation({ summary: 'Get all equipment edits for moderation' })
-  async getEquipmentEdits(@Request() req) {
-    return this.adminService.getEquipmentEdits(req.user.userId, req.user.role);
+  async getEquipmentEdits(
+    @Query('status') status?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Request() req?
+  ) {
+    return this.adminService.getEquipmentEdits(
+      req.user.userId,
+      req.user.role,
+      status,
+      page || 1,
+      limit || 10
+    );
   }
 
   @Patch('equipment-edits/:id/moderate')
@@ -220,7 +232,7 @@ export class AdminController {
   @ApiOperation({ summary: 'Moderate equipment edit' })
   async moderateEquipmentEdit(
     @Param('id') editId: string,
-    @Body() body: { isApproved: boolean; rejectionReason?: string },
+    @Body() body: ModerateEquipmentEditDto,
     @Request() req
   ) {
     return this.adminService.moderateEquipmentEdit(

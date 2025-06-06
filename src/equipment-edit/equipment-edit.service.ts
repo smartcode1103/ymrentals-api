@@ -197,7 +197,7 @@ export class EquipmentEditService {
       if (edit.videos.length > 0) updateData.videos = edit.videos;
       if (edit.documents.length > 0) updateData.documents = edit.documents;
       if (edit.specifications !== null) updateData.specifications = edit.specifications;
-      if (edit.isAvailable !== null) updateData.isAvailable = edit.isAvailable;
+      if (edit.isAvailable !== null && edit.isAvailable !== undefined) updateData.isAvailable = edit.isAvailable;
       if (edit.addressId !== null) updateData.addressId = edit.addressId;
 
       // Aplicar as alterações ao equipamento

@@ -1457,10 +1457,23 @@ export class AdminService {
   }
 
   // ===== EQUIPMENT EDITS MANAGEMENT =====
-  async getEquipmentEdits(adminId: string, role: string) {
+  async getEquipmentEdits(
+    adminId: string,
+    role: string,
+    status?: string,
+    page: number = 1,
+    limit: number = 10
+  ) {
     await this.ensureAdminOrModerator(adminId);
 
+    // Construir filtro de status
+    const whereClause: any = {};
+    if (status) {
+      whereClause.status = status.toUpperCase();
+    }
+
     const edits = await this.prisma.equipmentEdit.findMany({
+      where: whereClause,
       include: {
         equipment: {
           include: {
@@ -1484,13 +1497,41 @@ export class AdminService {
       },
       orderBy: {
         createdAt: 'desc'
-      }
+      },
+      skip: (page - 1) * limit,
+      take: limit
+    });
+
+    const total = await this.prisma.equipmentEdit.count({
+      where: whereClause
+    });
+
+    // Obter contadores para todas as abas
+    const pendingCount = await this.prisma.equipmentEdit.count({
+      where: { status: 'PENDING' }
+    });
+    const approvedCount = await this.prisma.equipmentEdit.count({
+      where: { status: 'APPROVED' }
+    });
+    const rejectedCount = await this.prisma.equipmentEdit.count({
+      where: { status: 'REJECTED' }
     });
 
     return {
       success: true,
       data: edits,
-      total: edits.length
+      total,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      },
+      counts: {
+        pending: pendingCount,
+        approved: approvedCount,
+        rejected: rejectedCount
+      }
     };
   }
 
@@ -1554,7 +1595,7 @@ export class AdminService {
       if (edit.videos && edit.videos.length > 0) equipmentUpdateData.videos = edit.videos;
       if (edit.documents && edit.documents.length > 0) equipmentUpdateData.documents = edit.documents;
       if (edit.specifications) equipmentUpdateData.specifications = edit.specifications;
-      if (edit.isAvailable !== undefined) equipmentUpdateData.isAvailable = edit.isAvailable;
+      if (edit.isAvailable !== undefined && edit.isAvailable !== null) equipmentUpdateData.isAvailable = edit.isAvailable;
       if (edit.addressId) equipmentUpdateData.addressId = edit.addressId;
 
       if (Object.keys(equipmentUpdateData).length > 0) {

@@ -222,7 +222,36 @@ export class EquipmentService {
             startDate: true,
             endDate: true,
           },
+          where: {
+            // Incluir apenas aluguéis ativos ou em processo
+            status: {
+              in: ['PENDING', 'APPROVED', 'PAID', 'ACTIVE']
+            },
+            // E que não expiraram
+            endDate: {
+              gte: new Date()
+            }
+          }
         },
+        _count: {
+          select: {
+            rentals: true,
+          },
+        },
+        edits: {
+          where: {
+            status: 'PENDING'
+          },
+          select: {
+            id: true,
+            status: true,
+            createdAt: true,
+          },
+          take: 1,
+          orderBy: {
+            createdAt: 'desc'
+          }
+        }
       },
       orderBy: { createdAt: 'desc' },
     });
