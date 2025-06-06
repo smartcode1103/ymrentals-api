@@ -8,6 +8,8 @@ import {
   Body,
   UseGuards,
   Request,
+  Req,
+  Res,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -15,6 +17,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { AuthGuard } from '@nestjs/passport';
+import { Response } from 'express';
 
 @ApiTags('Users')
 @Controller('users')
@@ -91,6 +95,27 @@ export class UserController {
   @ApiOperation({ summary: 'Verify email with token' })
   async verifyEmail(@Param('token') token: string) {
     return this.userService.verifyEmail(token);
+  }
+
+  // Google OAuth endpoints
+  @Get('auth/google')
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Initiate Google OAuth login' })
+  async googleAuth(@Req() req) {
+    // Guard redirects to Google
+  }
+
+  @Get('auth/google/callback')
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Google OAuth callback' })
+  async googleAuthRedirect(@Req() req, @Res() res: Response) {
+    const result = await this.userService.googleLogin(req.user);
+
+    // Redirect to frontend with token
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const redirectUrl = `${frontendUrl}/auth/google/success?token=${result.accessToken}&user=${encodeURIComponent(JSON.stringify(result.user))}`;
+
+    return res.redirect(redirectUrl);
   }
 
   // Endpoints para moderadores validarem BI

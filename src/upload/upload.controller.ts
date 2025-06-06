@@ -115,7 +115,7 @@ export class UploadController {
   }
 
   @Post('profile-picture')
-  @ApiOperation({ summary: 'Upload profile picture' })
+  @ApiOperation({ summary: 'Upload profile picture as base64' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file'))
   async uploadProfilePicture(@UploadedFile() file: any, @Request() req) {
@@ -128,6 +128,108 @@ export class UploadController {
     }
 
     return this.uploadService.uploadProfilePicture(file, req.user.userId);
+  }
+
+  @Post('document-base64')
+  @ApiOperation({ summary: 'Upload document as base64' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadDocumentAsBase64(@UploadedFile() file: any, @Request() req) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    return this.uploadService.uploadDocumentAsBase64(file, req.user.userId);
+  }
+
+  @Post('image-base64')
+  @ApiOperation({ summary: 'Upload image as base64' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadImageAsBase64(@UploadedFile() file: any, @Request() req) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    if (!file.mimetype.startsWith('image/')) {
+      throw new BadRequestException('Only image files are allowed');
+    }
+
+    return this.uploadService.uploadImageAsBase64(file, req.user.userId);
+  }
+
+  @Post('bi-document')
+  @ApiOperation({ summary: 'Upload BI document as base64' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadBiDocument(@UploadedFile() file: any, @Request() req) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    const allowedTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'image/jpg'
+    ];
+
+    if (!allowedTypes.includes(file.mimetype)) {
+      throw new BadRequestException('Only PDF and image files are allowed for BI documents');
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB
+      throw new BadRequestException('File size must be less than 5MB');
+    }
+
+    return this.uploadService.uploadBiDocument(file, req.user.userId);
+  }
+
+  @Post('company-document-base64')
+  @ApiOperation({ summary: 'Upload company document as base64' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadCompanyDocumentBase64(@UploadedFile() file: any, @Request() req) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    const allowedTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'image/jpg'
+    ];
+
+    if (!allowedTypes.includes(file.mimetype)) {
+      throw new BadRequestException('Only PDF and image files are allowed for company documents');
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB
+      throw new BadRequestException('File size must be less than 5MB');
+    }
+
+    return this.uploadService.uploadCompanyDocument(file, req.user.userId);
+  }
+
+  @Post('company-cover-image')
+  @ApiOperation({ summary: 'Upload company cover image as base64' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadCompanyCoverImage(@UploadedFile() file: any, @Request() req) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    if (!file.mimetype.startsWith('image/')) {
+      throw new BadRequestException('Only image files are allowed');
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB
+      throw new BadRequestException('File size must be less than 5MB');
+    }
+
+    return this.uploadService.uploadCompanyCoverImage(file, req.user.userId);
   }
 
   @Post('company-document')

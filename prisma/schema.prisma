@@ -10,10 +10,10 @@ datasource db {
 model User {
   id                                      String          @id @default(uuid())
   email                                   String          @unique
-  password                                String
+  password                                String?
   fullName                                String
-  phoneNumber                             String
-  dateOfBirth                             DateTime
+  phoneNumber                             String?
+  dateOfBirth                             DateTime?
   isEmailVerified                         Boolean         @default(false)
   isPhoneVerified                         Boolean         @default(false)
   userType                                UserType        @default(TENANT)
@@ -49,6 +49,12 @@ model User {
   biRejectionReason                       String?
   emailVerificationToken                  String?
   emailVerificationExpires                DateTime?
+  // Google OAuth fields
+  googleId                                String?         @unique
+  googleEmail                             String?
+  isGoogleUser                            Boolean         @default(false)
+  googleProfilePicture                    String?
+  googleVerified                          Boolean         @default(false)
   BlockedUser_BlockedUser_blockedIdToUser BlockedUser[]   @relation("BlockedUser_blockedIdToUser")
   BlockedUser_BlockedUser_blockerIdToUser BlockedUser[]   @relation("BlockedUser_blockerIdToUser")
   Chat_Chat_initiatorIdToUser             Chat[]          @relation("Chat_initiatorIdToUser")

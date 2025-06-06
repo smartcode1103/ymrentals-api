@@ -157,7 +157,11 @@ export class UserService {
     }
 
     // Verificar senha atual
-    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!user.password) {
+      throw new UnauthorizedException('User does not have a password set (Google user)');
+    }
+
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password!);
     if (!isCurrentPasswordValid) {
       throw new UnauthorizedException('Current password is incorrect');
     }
@@ -243,10 +247,14 @@ export class UserService {
       throw new UnauthorizedException('Account is blocked');
     }
 
+    if (!user.password) {
+      throw new UnauthorizedException('User does not have a password set (Google user)');
+    }
+
     console.log('Senha informada:', password);
     console.log('Senha armazenada:', user.password);
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password!);
 
     console.log('Senha válida?', isPasswordValid);
 
@@ -272,6 +280,204 @@ export class UserService {
   async logout() {
     // Simulação de logout, idealmente gerenciamos uma blacklist de tokens
     return { message: 'User logged out successfully' };
+  }
+
+  async findOrCreateGoogleUser(googleUserData: any) {
+    // Primeiro, verificar se já existe um usuário com este googleId
+    let user = await this.prisma.user.findUnique({
+      where: { googleId: googleUserData.googleId },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        phoneNumber: true,
+        userType: true,
+        role: true,
+        accountStatus: true,
+        isBlocked: true,
+        isEmailVerified: true,
+        isPhoneVerified: true,
+        dateOfBirth: true,
+        createdAt: true,
+        updatedAt: true,
+        isCompany: true,
+        nif: true,
+        companyName: true,
+        companyAddress: true,
+        companyType: true,
+        companyDocuments: true,
+        bio: true,
+        occupation: true,
+        location: true,
+        profilePicture: true,
+        googleId: true,
+        googleEmail: true,
+        isGoogleUser: true,
+        googleProfilePicture: true,
+        googleVerified: true,
+      }
+    });
+
+    if (user) {
+      // Atualizar dados do Google se necessário
+      if (user.profilePicture !== googleUserData.googleProfilePicture ||
+          user.fullName !== googleUserData.fullName) {
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            profilePicture: googleUserData.googleProfilePicture,
+            fullName: googleUserData.fullName,
+            googleProfilePicture: googleUserData.googleProfilePicture,
+          },
+          select: {
+            id: true,
+            email: true,
+            fullName: true,
+            phoneNumber: true,
+            userType: true,
+            role: true,
+            accountStatus: true,
+            isBlocked: true,
+            isEmailVerified: true,
+            isPhoneVerified: true,
+            dateOfBirth: true,
+            createdAt: true,
+            updatedAt: true,
+            isCompany: true,
+            nif: true,
+            companyName: true,
+            companyAddress: true,
+            companyType: true,
+            companyDocuments: true,
+            bio: true,
+            occupation: true,
+            location: true,
+            profilePicture: true,
+            googleId: true,
+            googleEmail: true,
+            isGoogleUser: true,
+            googleProfilePicture: true,
+            googleVerified: true,
+          }
+        });
+      }
+      return user;
+    }
+
+    // Verificar se já existe um usuário com este email
+    const existingEmailUser = await this.prisma.user.findUnique({
+      where: { email: googleUserData.email }
+    });
+
+    if (existingEmailUser) {
+      // Vincular conta Google ao usuário existente
+      user = await this.prisma.user.update({
+        where: { email: googleUserData.email },
+        data: {
+          googleId: googleUserData.googleId,
+          googleEmail: googleUserData.googleEmail,
+          isGoogleUser: true,
+          googleProfilePicture: googleUserData.googleProfilePicture,
+          googleVerified: googleUserData.googleVerified,
+          isEmailVerified: true,
+          profilePicture: googleUserData.googleProfilePicture,
+        },
+        select: {
+          id: true,
+          email: true,
+          fullName: true,
+          phoneNumber: true,
+          userType: true,
+          role: true,
+          accountStatus: true,
+          isBlocked: true,
+          isEmailVerified: true,
+          isPhoneVerified: true,
+          dateOfBirth: true,
+          createdAt: true,
+          updatedAt: true,
+          isCompany: true,
+          nif: true,
+          companyName: true,
+          companyAddress: true,
+          companyType: true,
+          companyDocuments: true,
+          bio: true,
+          occupation: true,
+          location: true,
+          profilePicture: true,
+          googleId: true,
+          googleEmail: true,
+          isGoogleUser: true,
+          googleProfilePicture: true,
+          googleVerified: true,
+        }
+      });
+      return user;
+    }
+
+    // Criar novo usuário
+    user = await this.prisma.user.create({
+      data: {
+        email: googleUserData.email,
+        fullName: googleUserData.fullName,
+        googleId: googleUserData.googleId,
+        googleEmail: googleUserData.googleEmail,
+        isGoogleUser: true,
+        googleProfilePicture: googleUserData.googleProfilePicture,
+        googleVerified: googleUserData.googleVerified,
+        isEmailVerified: true,
+        profilePicture: googleUserData.googleProfilePicture,
+        userType: 'TENANT', // Default para novos usuários Google
+        accountStatus: 'APPROVED', // Usuários Google são aprovados automaticamente
+      },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        phoneNumber: true,
+        userType: true,
+        role: true,
+        accountStatus: true,
+        isBlocked: true,
+        isEmailVerified: true,
+        isPhoneVerified: true,
+        dateOfBirth: true,
+        createdAt: true,
+        updatedAt: true,
+        isCompany: true,
+        nif: true,
+        companyName: true,
+        companyAddress: true,
+        companyType: true,
+        companyDocuments: true,
+        bio: true,
+        occupation: true,
+        location: true,
+        profilePicture: true,
+        googleId: true,
+        googleEmail: true,
+        isGoogleUser: true,
+        googleProfilePicture: true,
+        googleVerified: true,
+      }
+    });
+
+    return user;
+  }
+
+  async googleLogin(user: any) {
+    if (user.isBlocked) {
+      throw new UnauthorizedException('Account is blocked');
+    }
+
+    const payload = { sub: user.id, email: user.email };
+    const token = this.jwtService.sign(payload);
+
+    return {
+      accessToken: token,
+      user: user
+    };
   }
 
   async blockUser(adminId: string, userId: string) {

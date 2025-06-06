@@ -68,21 +68,112 @@ export class UploadService {
 
   async uploadProfilePicture(file: any, userId: string) {
     try {
-      // Primeiro, fazer upload do arquivo
-      const uploadResult = await this.uploadFile(file, userId, 'image');
+      // Converter arquivo para base64
+      const base64Data = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
 
-      // Atualizar o perfil do usuário
+      // Atualizar o perfil do usuário diretamente com base64
       await this.prisma.user.update({
         where: { id: userId },
-        data: { profilePicture: uploadResult.url }
+        data: { profilePicture: base64Data }
       });
 
       return {
-        ...uploadResult,
-        message: 'Profile picture updated successfully'
+        message: 'Profile picture updated successfully',
+        profilePicture: base64Data
       };
     } catch (error) {
       throw new BadRequestException('Failed to upload profile picture');
+    }
+  }
+
+  async uploadDocumentAsBase64(file: any, userId: string) {
+    try {
+      // Converter arquivo para base64
+      const base64Data = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+
+      return {
+        message: 'Document uploaded successfully',
+        document: base64Data,
+        originalName: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size
+      };
+    } catch (error) {
+      throw new BadRequestException('Failed to upload document');
+    }
+  }
+
+  async uploadImageAsBase64(file: any, userId: string) {
+    try {
+      // Converter arquivo para base64
+      const base64Data = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+
+      return {
+        message: 'Image uploaded successfully',
+        image: base64Data,
+        originalName: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size
+      };
+    } catch (error) {
+      throw new BadRequestException('Failed to upload image');
+    }
+  }
+
+  async uploadBiDocument(file: any, userId: string) {
+    try {
+      // Converter arquivo para base64
+      const base64Data = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+
+      // Atualizar o documento BI do usuário
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { biDocument: base64Data }
+      });
+
+      return {
+        message: 'BI document uploaded successfully',
+        biDocument: base64Data
+      };
+    } catch (error) {
+      throw new BadRequestException('Failed to upload BI document');
+    }
+  }
+
+  async uploadCompanyDocument(file: any, userId: string) {
+    try {
+      // Converter arquivo para base64
+      const base64Data = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+
+      return {
+        message: 'Company document uploaded successfully',
+        document: base64Data,
+        originalName: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size
+      };
+    } catch (error) {
+      throw new BadRequestException('Failed to upload company document');
+    }
+  }
+
+  async uploadCompanyCoverImage(file: any, userId: string) {
+    try {
+      // Converter arquivo para base64
+      const base64Data = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+
+      // Atualizar a foto de capa da empresa
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { companyCoverImage: base64Data }
+      });
+
+      return {
+        message: 'Company cover image uploaded successfully',
+        companyCoverImage: base64Data
+      };
+    } catch (error) {
+      throw new BadRequestException('Failed to upload company cover image');
     }
   }
 
