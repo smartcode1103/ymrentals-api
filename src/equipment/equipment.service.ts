@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEquipmentDto } from './dto/create-equipment.dto';
 import { UpdateEquipmentDto } from './dto/update-equipment.dto';
+import { LocationSearchDto } from './dto/location-search.dto';
 
 @Injectable()
 export class EquipmentService {
@@ -143,6 +144,140 @@ export class EquipmentService {
       limit: filters?.limit || total,
       totalPages: filters?.limit ? Math.ceil(total / filters.limit) : 1,
     };
+  }
+
+  async findNearby(filters: LocationSearchDto) {
+    const { latitude, longitude, radius = 10, page = 1, limit = 10, ...otherFilters } = filters;
+
+    if (!latitude || !longitude) {
+      // Se não há coordenadas, retornar busca normal
+      return this.findAll({ page, limit, ...otherFilters });
+    }
+
+    // Construir filtros base
+    const where: any = {
+      deletedAt: null,
+      moderationStatus: 'APPROVED',
+      Address: {
+        latitude: { not: null },
+        longitude: { not: null },
+      },
+    };
+
+    // Aplicar outros filtros
+    if (otherFilters.category) {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(otherFilters.category);
+      if (isUUID) {
+        where.categoryId = otherFilters.category;
+      } else {
+        where.category = { contains: otherFilters.category, mode: 'insensitive' };
+      }
+    }
+
+    if (otherFilters.search) {
+      where.OR = [
+        { name: { contains: otherFilters.search, mode: 'insensitive' } },
+        { description: { contains: otherFilters.search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (otherFilters.minPrice || otherFilters.maxPrice) {
+      where.price = {};
+      if (otherFilters.minPrice) where.price.gte = otherFilters.minPrice;
+      if (otherFilters.maxPrice) where.price.lte = otherFilters.maxPrice;
+    }
+
+    const skip = (page - 1) * limit;
+
+    // Buscar equipamentos com endereços
+    const equipment = await this.prisma.equipment.findMany({
+      where,
+      skip,
+      take: limit,
+      include: {
+        owner: {
+          select: {
+            id: true,
+            fullName: true,
+            profilePicture: true,
+            isEmailVerified: true,
+            isPhoneVerified: true,
+          },
+        },
+        Address: true,
+        reviews: {
+          select: {
+            rating: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Calcular distâncias e filtrar por raio
+    const equipmentWithDistance = equipment
+      .map(item => {
+        if (!item.Address?.latitude || !item.Address?.longitude) {
+          return null;
+        }
+
+        const distance = this.calculateDistance(
+          latitude,
+          longitude,
+          item.Address.latitude,
+          item.Address.longitude
+        );
+
+        return {
+          ...item,
+          distance: Math.round(distance * 100) / 100, // Arredondar para 2 casas decimais
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null && item.distance <= radius)
+      .sort((a, b) => a.distance - b.distance); // Ordenar por distância
+
+    const total = equipmentWithDistance.length;
+
+    return {
+      data: equipmentWithDistance,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      searchCenter: { latitude, longitude },
+      searchRadius: radius,
+    };
+  }
+
+  /**
+   * Calcula a distância entre duas coordenadas usando a fórmula Haversine
+   * @param lat1 Latitude do ponto 1
+   * @param lon1 Longitude do ponto 1
+   * @param lat2 Latitude do ponto 2
+   * @param lon2 Longitude do ponto 2
+   * @returns Distância em quilômetros
+   */
+  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // Raio da Terra em quilômetros
+    const dLat = this.toRadians(lat2 - lat1);
+    const dLon = this.toRadians(lon2 - lon1);
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+
+    return distance;
+  }
+
+  /**
+   * Converte graus para radianos
+   */
+  private toRadians(degrees: number): number {
+    return degrees * (Math.PI / 180);
   }
 
   async findOne(id: string) {

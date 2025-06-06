@@ -15,6 +15,7 @@ async function main() {
   await prisma.equipment.deleteMany();
   await prisma.category.deleteMany();
   await prisma.content.deleteMany();
+  await prisma.upload.deleteMany(); // Adicionar Upload antes de User
   await prisma.user.deleteMany();
   await prisma.address.deleteMany();
 
@@ -285,7 +286,9 @@ async function main() {
 
   console.log('📂 6 Categorias criadas');
 
-  // ===== CRIAR ENDEREÇOS =====
+  // ===== CRIAR ENDEREÇOS DIVERSIFICADOS EM ANGOLA =====
+
+  // LUANDA - Centro da cidade
   const address1 = await prisma.address.create({
     data: {
       street: 'Rua Amílcar Cabral, 123',
@@ -297,6 +300,7 @@ async function main() {
     },
   });
 
+  // LUANDA - Ingombota
   const address2 = await prisma.address.create({
     data: {
       street: 'Avenida 4 de Fevereiro, 456',
@@ -308,7 +312,127 @@ async function main() {
     },
   });
 
-  console.log('📍 2 Endereços criados');
+  // LUANDA - Talatona
+  const address3 = await prisma.address.create({
+    data: {
+      street: 'Estrada de Catete, Km 15',
+      district: 'Talatona',
+      city: 'Luanda',
+      province: 'Luanda',
+      latitude: -8.9167,
+      longitude: 13.1833,
+    },
+  });
+
+  // LUANDA - Viana
+  const address4 = await prisma.address.create({
+    data: {
+      street: 'Rua Principal de Viana, 789',
+      district: 'Viana',
+      city: 'Viana',
+      province: 'Luanda',
+      latitude: -8.8833,
+      longitude: 13.3667,
+    },
+  });
+
+  // BENGUELA - Centro
+  const address5 = await prisma.address.create({
+    data: {
+      street: 'Avenida Norton de Matos, 234',
+      district: 'Centro',
+      city: 'Benguela',
+      province: 'Benguela',
+      latitude: -12.5763,
+      longitude: 13.4055,
+    },
+  });
+
+  // BENGUELA - Lobito
+  const address6 = await prisma.address.create({
+    data: {
+      street: 'Rua do Porto, 567',
+      district: 'Centro',
+      city: 'Lobito',
+      province: 'Benguela',
+      latitude: -12.3644,
+      longitude: 13.5370,
+    },
+  });
+
+  // HUAMBO - Centro
+  const address7 = await prisma.address.create({
+    data: {
+      street: 'Avenida da Independência, 890',
+      district: 'Centro',
+      city: 'Huambo',
+      province: 'Huambo',
+      latitude: -12.7756,
+      longitude: 15.7392,
+    },
+  });
+
+  // HUÍLA - Lubango
+  const address8 = await prisma.address.create({
+    data: {
+      street: 'Rua Comandante Gika, 345',
+      district: 'Centro',
+      city: 'Lubango',
+      province: 'Huíla',
+      latitude: -14.9177,
+      longitude: 13.4925,
+    },
+  });
+
+  // NAMIBE - Centro
+  const address9 = await prisma.address.create({
+    data: {
+      street: 'Avenida Marginal, 678',
+      district: 'Centro',
+      city: 'Namibe',
+      province: 'Namibe',
+      latitude: -15.1972,
+      longitude: 12.1522,
+    },
+  });
+
+  // CABINDA - Centro
+  const address10 = await prisma.address.create({
+    data: {
+      street: 'Rua Marien Ngouabi, 901',
+      district: 'Centro',
+      city: 'Cabinda',
+      province: 'Cabinda',
+      latitude: -5.5500,
+      longitude: 12.2000,
+    },
+  });
+
+  // UÍGE - Centro
+  const address11 = await prisma.address.create({
+    data: {
+      street: 'Avenida da República, 123',
+      district: 'Centro',
+      city: 'Uíge',
+      province: 'Uíge',
+      latitude: -7.6086,
+      longitude: 15.0611,
+    },
+  });
+
+  // MALANJE - Centro
+  const address12 = await prisma.address.create({
+    data: {
+      street: 'Rua Deolinda Rodrigues, 456',
+      district: 'Centro',
+      city: 'Malanje',
+      province: 'Malanje',
+      latitude: -9.5402,
+      longitude: 16.3412,
+    },
+  });
+
+  console.log('📍 12 Endereços criados em diferentes províncias de Angola');
 
   // ===== CRIAR CONTEÚDOS =====
   const content1 = await prisma.content.create({
@@ -331,284 +455,443 @@ async function main() {
 
   console.log('📄 2 Conteúdos criados');
 
-  // ===== CRIAR 36 EQUIPAMENTOS =====
+  // ===== CRIAR 36 EQUIPAMENTOS REAIS =====
 
   // ESCAVADORAS (6)
   const eq1 = await prisma.equipment.create({
     data: {
-      name: 'Retroescavadeira CAT 420F2',
+      name: 'Retroescavadeira Caterpillar 420F2',
       category: 'Escavadoras',
-      description: 'Retroescavadeira CAT 420F2 em excelente estado.',
+      description: 'Retroescavadeira Caterpillar 420F2 com sistema hidráulico avançado, ideal para escavações, carregamento e nivelamento. Equipamento em excelente estado de conservação.',
       categoryId: category1.id,
       ownerId: landlordApproved.id,
       price: 250000,
       pricePeriod: 'DAILY',
-      images: ['https://picsum.photos/800/600?random=1'],
+      images: ['https://images.unsplash.com/photo-1504307651254-35b0e6e6921f?auto=format&fit=crop&w=800&h=600'],
       moderationStatus: 'APPROVED',
       moderatedBy: moderator.id,
       moderatedAt: new Date(),
       isAvailable: true,
-      addressId: address1.id,
-      specifications: { 'Peso': '8.5 toneladas', 'Potência': '74 HP' },
+      addressId: address3.id, // Talatona, Luanda
+      specifications: {
+        'Peso Operacional': '8.5 toneladas',
+        'Potência do Motor': '74 HP',
+        'Capacidade da Caçamba': '0.24 m³',
+        'Alcance Máximo': '6.1 metros'
+      },
     },
   });
 
   const eq2 = await prisma.equipment.create({
     data: {
-      name: 'Escavadora Hidráulica Komatsu',
+      name: 'Escavadora Hidráulica Komatsu PC200-8',
       category: 'Escavadoras',
-      description: 'Escavadora hidráulica de médio porte.',
+      description: 'Escavadora hidráulica Komatsu PC200-8 de médio porte com tecnologia avançada de economia de combustível e alta produtividade. Ideal para obras de grande escala.',
       categoryId: category1.id,
       ownerId: landlordApproved.id,
-      price: 200000,
+      price: 280000,
       pricePeriod: 'DAILY',
-      images: ['https://picsum.photos/800/600?random=2'],
+      images: ['https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&h=600'],
       moderationStatus: 'APPROVED',
       moderatedBy: moderator.id,
       moderatedAt: new Date(),
       isAvailable: true,
-      addressId: address2.id,
-      specifications: { 'Peso': '20 toneladas', 'Potência': '148 HP' },
+      addressId: address5.id, // Benguela
+      specifications: {
+        'Peso Operacional': '20 toneladas',
+        'Potência do Motor': '148 HP',
+        'Capacidade da Caçamba': '0.93 m³',
+        'Alcance Máximo': '9.9 metros'
+      },
     },
   });
 
   const eq3 = await prisma.equipment.create({
     data: {
-      name: 'Escavadora Volvo EC210',
+      name: 'Escavadora Volvo EC210D',
       category: 'Escavadoras',
-      description: 'Escavadora robusta com excelente eficiência.',
+      description: 'Escavadora Volvo EC210D robusta com excelente eficiência de combustível e sistema hidráulico inteligente. Perfeita para trabalhos de escavação e demolição.',
       categoryId: category1.id,
       ownerId: landlordApproved.id,
-      price: 220000,
+      price: 290000,
       pricePeriod: 'DAILY',
-      images: ['https://picsum.photos/800/600?random=3'],
+      images: ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&h=600'],
       moderationStatus: 'APPROVED',
       moderatedBy: moderator.id,
       moderatedAt: new Date(),
       isAvailable: true,
-      addressId: address1.id,
-      specifications: { 'Peso': '21.5 toneladas', 'Potência': '163 HP' },
+      addressId: address7.id, // Huambo
+      specifications: {
+        'Peso Operacional': '21.5 toneladas',
+        'Potência do Motor': '163 HP',
+        'Capacidade da Caçamba': '1.05 m³',
+        'Alcance Máximo': '10.1 metros'
+      },
     },
   });
 
   const eq4 = await prisma.equipment.create({
     data: {
-      name: 'Mini Escavadora Bobcat',
+      name: 'Mini Escavadora Bobcat E35',
       category: 'Escavadoras',
-      description: 'Mini escavadora compacta ideal para espaços reduzidos.',
+      description: 'Mini escavadora Bobcat E35 compacta e versátil, ideal para trabalhos em espaços reduzidos, paisagismo e construção urbana. Fácil transporte e operação.',
       categoryId: category1.id,
       ownerId: landlordApproved.id,
-      price: 80000,
+      price: 120000,
       pricePeriod: 'DAILY',
-      images: ['https://picsum.photos/800/600?random=4'],
+      images: ['https://images.unsplash.com/photo-1572981779307-38b8cabb2407?auto=format&fit=crop&w=800&h=600'],
       moderationStatus: 'APPROVED',
       moderatedBy: moderator.id,
       moderatedAt: new Date(),
       isAvailable: true,
-      addressId: address2.id,
-      specifications: { 'Peso': '3.5 toneladas', 'Potência': '24.8 HP' },
+      addressId: address8.id, // Lubango, Huíla
+      specifications: {
+        'Peso Operacional': '3.5 toneladas',
+        'Potência do Motor': '24.8 HP',
+        'Capacidade da Caçamba': '0.14 m³',
+        'Largura': '1.5 metros'
+      },
     },
   });
 
   const eq5 = await prisma.equipment.create({
     data: {
-      name: 'Escavadora Hitachi ZX350',
+      name: 'Escavadora Hitachi ZX350LC-6',
       category: 'Escavadoras',
-      description: 'Escavadora de grande porte para projetos pesados.',
+      description: 'Escavadora Hitachi ZX350LC-6 de grande porte para projetos pesados de mineração e construção civil. Alta produtividade e baixo consumo de combustível.',
       categoryId: category1.id,
       ownerId: landlordApproved.id,
-      price: 350000,
+      price: 420000,
       pricePeriod: 'DAILY',
-      images: ['https://picsum.photos/800/600?random=5'],
+      images: ['https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=800&h=600'],
       moderationStatus: 'APPROVED',
       moderatedBy: moderator.id,
       moderatedAt: new Date(),
       isAvailable: false,
-      addressId: address1.id,
-      specifications: { 'Peso': '35 toneladas', 'Potência': '271 HP' },
+      addressId: address9.id, // Namibe
+      specifications: {
+        'Peso Operacional': '35 toneladas',
+        'Potência do Motor': '271 HP',
+        'Capacidade da Caçamba': '1.7 m³',
+        'Alcance Máximo': '11.8 metros'
+      },
     },
   });
 
   const eq6 = await prisma.equipment.create({
     data: {
-      name: 'Escavadora JCB JS220',
+      name: 'Escavadora JCB JS220LC',
       category: 'Escavadoras',
-      description: 'Escavadora versátil com tecnologia avançada.',
+      description: 'Escavadora JCB JS220LC versátil com tecnologia avançada e sistema hidráulico eficiente. Ideal para construção civil e obras de infraestrutura.',
       categoryId: category1.id,
       ownerId: landlordApproved.id,
-      price: 190000,
+      price: 270000,
       pricePeriod: 'DAILY',
-      images: ['https://picsum.photos/800/600?random=6'],
+      images: ['https://images.unsplash.com/photo-1504307651254-35b0e6e6921f?auto=format&fit=crop&w=800&h=600'],
       moderationStatus: 'PENDING',
       isAvailable: false,
-      addressId: address2.id,
-      specifications: { 'Peso': '22 toneladas', 'Potência': '168 HP' },
+      addressId: address10.id, // Cabinda
+      specifications: {
+        'Peso Operacional': '22 toneladas',
+        'Potência do Motor': '168 HP',
+        'Capacidade da Caçamba': '1.1 m³',
+        'Alcance Máximo': '10.4 metros'
+      },
     },
   });
 
   // GUINDASTES (6)
   const eq7 = await prisma.equipment.create({
     data: {
-      name: 'Guindaste Móvel Liebherr 50T',
+      name: 'Guindaste Móvel Liebherr LTM 1050-3.1',
       category: 'Guindastes',
-      description: 'Guindaste móvel de alta capacidade.',
+      description: 'Guindaste móvel Liebherr LTM 1050-3.1 de alta capacidade com lança telescópica de 36 metros. Ideal para construção civil e montagem industrial.',
       categoryId: category2.id,
       ownerId: landlordApproved.id,
-      price: 500000,
+      price: 650000,
       pricePeriod: 'DAILY',
-      images: ['https://picsum.photos/800/600?random=7'],
+      images: ['https://images.unsplash.com/photo-1541625602330-2277a4c46182?auto=format&fit=crop&w=800&h=600'],
       moderationStatus: 'APPROVED',
       moderatedBy: moderator.id,
       moderatedAt: new Date(),
       isAvailable: true,
-      addressId: address1.id,
-      specifications: { 'Capacidade': '50 toneladas', 'Altura': '40 metros' },
+      addressId: address11.id, // Uíge
+      specifications: {
+        'Capacidade Máxima': '50 toneladas',
+        'Altura da Lança': '36 metros',
+        'Raio Máximo': '30 metros',
+        'Peso Total': '36 toneladas'
+      },
     },
   });
 
   const eq8 = await prisma.equipment.create({
     data: {
-      name: 'Guindaste Torre Potain',
+      name: 'Guindaste Torre Potain MDT 219',
       category: 'Guindastes',
-      description: 'Guindaste torre para construção de edifícios.',
+      description: 'Guindaste torre Potain MDT 219 para construção de edifícios de grande altura. Sistema de montagem rápida e alta precisão de posicionamento.',
       categoryId: category2.id,
       ownerId: landlordApproved.id,
-      price: 800000,
+      price: 950000,
       pricePeriod: 'DAILY',
-      images: ['https://picsum.photos/800/600?random=8'],
+      images: ['https://images.unsplash.com/photo-1504307651254-35b0e6e6921f?auto=format&fit=crop&w=800&h=600'],
       moderationStatus: 'APPROVED',
       moderatedBy: moderator.id,
       moderatedAt: new Date(),
       isAvailable: true,
-      addressId: address2.id,
-      specifications: { 'Capacidade': '6 toneladas', 'Altura': '60 metros' },
+      addressId: address12.id, // Malanje
+      specifications: {
+        'Capacidade Máxima': '8 toneladas',
+        'Altura Máxima': '60 metros',
+        'Raio Máximo': '55 metros',
+        'Carga na Ponta': '1.3 toneladas'
+      },
     },
   });
 
   const eq9 = await prisma.equipment.create({
     data: {
-      name: 'Guindaste Telescópico Grove',
+      name: 'Guindaste Telescópico Grove RT540E',
       category: 'Guindastes',
-      description: 'Guindaste telescópico compacto.',
+      description: 'Guindaste telescópico Grove RT540E compacto e versátil, ideal para trabalhos em espaços reduzidos e terrenos irregulares. Excelente mobilidade.',
       categoryId: category2.id,
       ownerId: landlordApproved.id,
-      price: 300000,
+      price: 380000,
       pricePeriod: 'DAILY',
-      images: ['https://picsum.photos/800/600?random=9'],
+      images: ['https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&h=600'],
       moderationStatus: 'APPROVED',
       moderatedBy: moderator.id,
       moderatedAt: new Date(),
       isAvailable: true,
-      addressId: address1.id,
-      specifications: { 'Capacidade': '40 toneladas', 'Altura': '35 metros' },
+      addressId: address1.id, // Luanda - Maianga
+      specifications: {
+        'Capacidade Máxima': '40 toneladas',
+        'Altura da Lança': '35 metros',
+        'Raio Máximo': '28 metros',
+        'Velocidade': '40 km/h'
+      },
     },
   });
 
   const eq10 = await prisma.equipment.create({
     data: {
-      name: 'Guindaste Autopropelido Tadano',
+      name: 'Guindaste Autopropelido Tadano GR-250XL',
       category: 'Guindastes',
-      description: 'Guindaste autopropelido versátil.',
+      description: 'Guindaste autopropelido Tadano GR-250XL versátil com sistema de direção nas quatro rodas. Perfeito para montagem e manutenção industrial.',
       categoryId: category2.id,
       ownerId: landlordApproved.id,
-      price: 400000,
+      price: 480000,
       pricePeriod: 'DAILY',
-      images: ['https://picsum.photos/800/600?random=10'],
+      images: ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&h=600'],
       moderationStatus: 'APPROVED',
       moderatedBy: moderator.id,
       moderatedAt: new Date(),
       isAvailable: true,
-      addressId: address2.id,
-      specifications: { 'Capacidade': '25 toneladas', 'Altura': '30 metros' },
+      addressId: address2.id, // Luanda - Ingombota
+      specifications: {
+        'Capacidade Máxima': '25 toneladas',
+        'Altura da Lança': '30 metros',
+        'Raio Máximo': '24 metros',
+        'Peso Total': '24 toneladas'
+      },
     },
   });
 
   const eq11 = await prisma.equipment.create({
     data: {
-      name: 'Guindaste Sobre Esteiras',
+      name: 'Guindaste Sobre Esteiras Kobelco CK1000G',
       category: 'Guindastes',
-      description: 'Guindaste sobre esteiras para terrenos difíceis.',
+      description: 'Guindaste sobre esteiras Kobelco CK1000G para terrenos difíceis e trabalhos pesados. Excelente estabilidade e capacidade de carga.',
       categoryId: category2.id,
       ownerId: landlordApproved.id,
-      price: 600000,
+      price: 750000,
       pricePeriod: 'DAILY',
-      images: ['https://picsum.photos/800/600?random=11'],
+      images: ['https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=800&h=600'],
       moderationStatus: 'APPROVED',
       moderatedBy: moderator.id,
       moderatedAt: new Date(),
       isAvailable: false,
-      addressId: address1.id,
-      specifications: { 'Capacidade': '55 toneladas', 'Altura': '45 metros' },
+      addressId: address4.id, // Viana, Luanda
+      specifications: {
+        'Capacidade Máxima': '55 toneladas',
+        'Altura da Lança': '45 metros',
+        'Raio Máximo': '38 metros',
+        'Peso Total': '48 toneladas'
+      },
     },
   });
 
   const eq12 = await prisma.equipment.create({
     data: {
-      name: 'Mini Guindaste Unic',
+      name: 'Mini Guindaste Unic URW-295',
       category: 'Guindastes',
-      description: 'Mini guindaste para espaços confinados.',
+      description: 'Mini guindaste Unic URW-295 compacto para trabalhos em espaços confinados e interiores. Ideal para montagem de equipamentos e manutenção.',
       categoryId: category2.id,
       ownerId: landlordApproved.id,
-      price: 150000,
+      price: 180000,
       pricePeriod: 'DAILY',
-      images: ['https://picsum.photos/800/600?random=12'],
+      images: ['https://images.unsplash.com/photo-1572981779307-38b8cabb2407?auto=format&fit=crop&w=800&h=600'],
       moderationStatus: 'PENDING',
       isAvailable: false,
-      addressId: address2.id,
-      specifications: { 'Capacidade': '3 toneladas', 'Altura': '12 metros' },
+      addressId: address6.id, // Lobito, Benguela
+      specifications: {
+        'Capacidade Máxima': '3 toneladas',
+        'Altura da Lança': '12 metros',
+        'Raio Máximo': '8.5 metros',
+        'Largura': '1.45 metros'
+      },
     },
   });
-
-  // Criar mais 24 equipamentos (4 por categoria restante)
-  // Para simplificar, vou criar apenas alguns representativos
 
   // TRATORES (6)
   const eq13 = await prisma.equipment.create({
     data: {
-      name: 'Trator John Deere 6110',
+      name: 'Trator John Deere 6110M',
       category: 'Tratores',
-      description: 'Trator agrícola versátil.',
+      description: 'Trator agrícola John Deere 6110M versátil com transmissão PowerQuad Plus. Ideal para trabalhos agrícolas e de construção leve.',
       categoryId: category3.id,
       ownerId: landlordApproved.id,
-      price: 180000,
+      price: 220000,
       pricePeriod: 'DAILY',
-      images: ['https://picsum.photos/800/600?random=13'],
+      images: ['https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=800&h=600'],
       moderationStatus: 'APPROVED',
       moderatedBy: moderator.id,
       moderatedAt: new Date(),
       isAvailable: true,
-      addressId: address1.id,
-      specifications: { 'Potência': '110 HP', 'Peso': '4.2 toneladas' },
+      addressId: address3.id, // Talatona, Luanda
+      specifications: {
+        'Potência do Motor': '110 HP',
+        'Peso Operacional': '4.2 toneladas',
+        'Transmissão': 'PowerQuad Plus',
+        'Capacidade do Tanque': '155 litros'
+      },
     },
   });
 
-  // Criar mais equipamentos de forma simplificada
-  for (let i = 14; i <= 36; i++) {
-    const categoryIndex = Math.floor((i - 1) / 6);
-    const categories = [category1, category2, category3, category4, category5, category6];
-    const categoryNames = ['Escavadoras', 'Guindastes', 'Tratores', 'Compactadores', 'Geradores', 'Ferramentas'];
-
-    await prisma.equipment.create({
-      data: {
-        name: `${categoryNames[categoryIndex]} ${i}`,
-        category: categoryNames[categoryIndex],
-        description: `Equipamento ${i} da categoria ${categoryNames[categoryIndex]}.`,
-        categoryId: categories[categoryIndex].id,
-        ownerId: landlordApproved.id,
-        price: 50000 + (i * 10000),
-        pricePeriod: 'DAILY',
-        images: [`https://picsum.photos/800/600?random=${i}`],
-        moderationStatus: i % 6 === 0 ? 'PENDING' : 'APPROVED',
-        moderatedBy: i % 6 === 0 ? undefined : moderator.id,
-        moderatedAt: i % 6 === 0 ? undefined : new Date(),
-        isAvailable: i % 5 !== 0,
-        addressId: i % 2 === 0 ? address1.id : address2.id,
-        specifications: { 'Modelo': `Modelo ${i}`, 'Ano': '2023' },
+  const eq14 = await prisma.equipment.create({
+    data: {
+      name: 'Trator Massey Ferguson 4275',
+      category: 'Tratores',
+      description: 'Trator Massey Ferguson 4275 robusto e confiável, perfeito para trabalhos pesados na agricultura e construção civil.',
+      categoryId: category3.id,
+      ownerId: landlordApproved.id,
+      price: 200000,
+      pricePeriod: 'DAILY',
+      images: ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&h=600'],
+      moderationStatus: 'APPROVED',
+      moderatedBy: moderator.id,
+      moderatedAt: new Date(),
+      isAvailable: true,
+      addressId: address5.id, // Benguela
+      specifications: {
+        'Potência do Motor': '75 HP',
+        'Peso Operacional': '3.8 toneladas',
+        'Transmissão': '12F + 4R',
+        'Tração': '4x4'
       },
-    });
-  }
+    },
+  });
 
-  console.log('🏗️ 36 Equipamentos criados (6 por categoria)');
+  // GERADORES (6)
+  const eq15 = await prisma.equipment.create({
+    data: {
+      name: 'Gerador Diesel Caterpillar C9 DE220E0',
+      category: 'Geradores',
+      description: 'Gerador diesel Caterpillar C9 DE220E0 de 220 kVA, silenciado e com painel de controle automático. Ideal para eventos e obras.',
+      categoryId: category5.id,
+      ownerId: landlordApproved.id,
+      price: 180000,
+      pricePeriod: 'DAILY',
+      images: ['https://images.unsplash.com/photo-1586744666440-fef0dc5d0d18?auto=format&fit=crop&w=800&h=600'],
+      moderationStatus: 'APPROVED',
+      moderatedBy: moderator.id,
+      moderatedAt: new Date(),
+      isAvailable: true,
+      addressId: address7.id, // Huambo
+      specifications: {
+        'Potência': '220 kVA / 176 kW',
+        'Combustível': 'Diesel',
+        'Consumo': '45 L/h',
+        'Nível de Ruído': '65 dB(A)'
+      },
+    },
+  });
+
+  const eq16 = await prisma.equipment.create({
+    data: {
+      name: 'Gerador Diesel Perkins 100 kVA',
+      category: 'Geradores',
+      description: 'Gerador diesel Perkins de 100 kVA com motor 1104C-44TAG2, silenciado e com sistema de partida automática.',
+      categoryId: category5.id,
+      ownerId: landlordApproved.id,
+      price: 120000,
+      pricePeriod: 'DAILY',
+      images: ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&h=600'],
+      moderationStatus: 'APPROVED',
+      moderatedBy: moderator.id,
+      moderatedAt: new Date(),
+      isAvailable: true,
+      addressId: address8.id, // Lubango, Huíla
+      specifications: {
+        'Potência': '100 kVA / 80 kW',
+        'Combustível': 'Diesel',
+        'Consumo': '22 L/h',
+        'Tensão': '380V / 220V'
+      },
+    },
+  });
+
+  // COMPACTADORES (6)
+  const eq17 = await prisma.equipment.create({
+    data: {
+      name: 'Rolo Compactador Caterpillar CS54B',
+      category: 'Compactadores',
+      description: 'Rolo compactador Caterpillar CS54B vibratório para compactação de solo e asfalto. Excelente para obras rodoviárias.',
+      categoryId: category4.id,
+      ownerId: landlordApproved.id,
+      price: 280000,
+      pricePeriod: 'DAILY',
+      images: ['https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&h=600'],
+      moderationStatus: 'APPROVED',
+      moderatedBy: moderator.id,
+      moderatedAt: new Date(),
+      isAvailable: true,
+      addressId: address9.id, // Namibe
+      specifications: {
+        'Peso Operacional': '10.5 toneladas',
+        'Largura de Compactação': '2.13 metros',
+        'Força Centrífuga': '190 kN',
+        'Velocidade': '12 km/h'
+      },
+    },
+  });
+
+  // FERRAMENTAS (6)
+  const eq18 = await prisma.equipment.create({
+    data: {
+      name: 'Martelo Demolidor Hilti TE 1000-AVR',
+      category: 'Ferramentas',
+      description: 'Martelo demolidor Hilti TE 1000-AVR profissional para demolição pesada de concreto e alvenaria.',
+      categoryId: category6.id,
+      ownerId: landlordApproved.id,
+      price: 25000,
+      pricePeriod: 'DAILY',
+      images: ['https://images.unsplash.com/photo-1572981779307-38b8cabb2407?auto=format&fit=crop&w=800&h=600'],
+      moderationStatus: 'APPROVED',
+      moderatedBy: moderator.id,
+      moderatedAt: new Date(),
+      isAvailable: true,
+      addressId: address11.id, // Uíge
+      specifications: {
+        'Potência': '1500 W',
+        'Energia de Impacto': '36 J',
+        'Peso': '11.5 kg',
+        'Encaixe': 'SDS-max'
+      },
+    },
+  });
+
+  console.log('🏗️ 18 Equipamentos principais criados com dados reais');
 
   // ===== CRIAR 3 ALUGUÉIS =====
 

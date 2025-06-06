@@ -2,6 +2,7 @@ import { Controller, Get, Post, Delete, Patch, Param, Body, Query, UseGuards, Re
 import { EquipmentService } from './equipment.service';
 import { CreateEquipmentDto } from './dto/create-equipment.dto';
 import { UpdateEquipmentDto } from './dto/update-equipment.dto';
+import { LocationSearchDto } from './dto/location-search.dto';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../user/jwt-auth.guard';
 
@@ -38,6 +39,12 @@ export class EquipmentController {
       page: page || 1,
       limit: limit || 10,
     });
+  }
+
+  @Get('nearby')
+  @ApiOperation({ summary: 'Get equipment by location and radius' })
+  async findNearby(@Query() locationSearchDto: LocationSearchDto) {
+    return this.equipmentService.findNearby(locationSearchDto);
   }
 
   @Get(':id')
