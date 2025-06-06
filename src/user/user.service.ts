@@ -19,6 +19,15 @@ export class UserService {
   ) {}
 
   async create(createUserDto: CreateUserDto) {
+    // Verificar se o email já existe
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: createUserDto.email }
+    });
+
+    if (existingUser) {
+      throw new BadRequestException('Email já está em uso');
+    }
+
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
     // Definir status da conta baseado no tipo de usuário e se é empresa
