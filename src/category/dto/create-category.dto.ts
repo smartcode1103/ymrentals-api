@@ -16,9 +16,12 @@ export class CreateCategoryDto {
   @IsString()
   icon?: string;
 
-  @ApiPropertyOptional({ description: 'Category image URL' })
+  @ApiPropertyOptional({
+    description: 'Category image (base64 encoded or URL)',
+    example: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD...'
+  })
   @IsOptional()
-  @IsUrl()
+  @IsString()
   image?: string;
 
   @ApiPropertyOptional({ description: 'Whether category is active', default: true })

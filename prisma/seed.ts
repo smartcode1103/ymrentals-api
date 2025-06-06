@@ -90,6 +90,12 @@ async function main() {
       companyType: 'COMPANY',
       companyAddress: 'Rua da Independência, 123, Luanda',
       nif: '541712345',
+      companyDocuments: [
+        'https://example.com/documents/alvara_construcoes_silva.pdf',
+        'https://example.com/documents/certidao_comercial_silva.pdf',
+        'https://example.com/documents/nif_silva.pdf'
+      ],
+      companyCoverImage: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=800&h=400',
       isEmailVerified: true,
       isPhoneVerified: true,
       approvedBy: admin.id,
@@ -113,6 +119,10 @@ async function main() {
       companyType: 'COMPANY',
       companyAddress: 'Avenida 4 de Fevereiro, 456, Luanda',
       nif: '541723456',
+      companyDocuments: [
+        'https://example.com/documents/alvara_equipamentos_mendes.pdf',
+        'https://example.com/documents/certidao_comercial_mendes.pdf'
+      ],
       isEmailVerified: true,
       isPhoneVerified: false,
     },
@@ -131,6 +141,9 @@ async function main() {
       accountStatus: 'REJECTED',
       isCompany: false,
       nif: '004567890LA042',
+      companyDocuments: [
+        'https://example.com/documents/documento_invalido_pedro.pdf'
+      ],
       isEmailVerified: false,
       isPhoneVerified: false,
       rejectedBy: admin.id,
@@ -139,7 +152,7 @@ async function main() {
     },
   });
 
-  // 👥 4 Locatários
+  // 👥 4 Locatários (com documentos BI)
   const tenant1 = await prisma.user.create({
     data: {
       email: 'locatario1@email.com',
@@ -152,6 +165,10 @@ async function main() {
       accountStatus: 'APPROVED',
       isEmailVerified: true,
       isPhoneVerified: true,
+      biDocument: 'https://example.com/documents/bi_ana_costa.pdf',
+      biValidated: true,
+      biValidatedBy: admin.id,
+      biValidatedAt: new Date(),
     },
   });
 
@@ -167,6 +184,8 @@ async function main() {
       accountStatus: 'APPROVED',
       isEmailVerified: true,
       isPhoneVerified: true,
+      biDocument: 'https://example.com/documents/bi_bruno_santos.pdf',
+      biValidated: false, // Pendente de validação
     },
   });
 
@@ -182,6 +201,9 @@ async function main() {
       accountStatus: 'APPROVED',
       isEmailVerified: true,
       isPhoneVerified: true,
+      biDocument: 'https://example.com/documents/bi_carla_ferreira.pdf',
+      biValidated: false, // Rejeitado
+      biRejectionReason: 'Documento ilegível, favor reenviar com melhor qualidade',
     },
   });
 
@@ -197,6 +219,10 @@ async function main() {
       accountStatus: 'APPROVED',
       isEmailVerified: true,
       isPhoneVerified: true,
+      biDocument: 'https://example.com/documents/bi_david_oliveira.pdf',
+      biValidated: true,
+      biValidatedBy: moderator.id,
+      biValidatedAt: new Date(),
     },
   });
 
@@ -654,7 +680,53 @@ async function main() {
     },
   });
 
-  console.log('📋 3 Aluguéis criados (1 completo, 1 ativo, 1 pendente)');
+  // 4. Aluguel com pagamento pendente de validação
+  const rental4 = await prisma.rental.create({
+    data: {
+      equipmentId: eq9.id, // Usando eq9 que existe
+      renterId: tenant4.id,
+      ownerId: landlordApproved.id,
+      startDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
+      endDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000),
+      startTime: '09:00',
+      endTime: '17:00',
+      totalAmount: 600000,
+      dailyRate: 200000,
+      pricePeriod: 'DAILY',
+      status: 'PENDING',
+      paymentMethod: 'RECEIPT',
+      paymentStatus: 'PENDING',
+      paymentReceipt: 'https://example.com/receipts/comprovante_david_oliveira.pdf',
+      paymentReceiptStatus: 'PENDING',
+      returnReminderDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  // 5. Aluguel com pagamento rejeitado
+  const rental5 = await prisma.rental.create({
+    data: {
+      equipmentId: eq11.id, // Usando eq11 que existe
+      renterId: tenant3.id,
+      ownerId: landlordApproved.id,
+      startDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      endDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
+      startTime: '08:00',
+      endTime: '18:00',
+      totalAmount: 450000,
+      dailyRate: 150000,
+      pricePeriod: 'DAILY',
+      status: 'PENDING',
+      paymentMethod: 'RECEIPT',
+      paymentStatus: 'PENDING',
+      paymentReceipt: 'https://example.com/receipts/comprovante_rejeitado_carla.pdf',
+      paymentReceiptStatus: 'REJECTED',
+      moderatedBy: moderator.id,
+      moderatedAt: new Date(),
+      returnReminderDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  console.log('📋 5 Aluguéis criados (1 completo, 1 ativo, 3 pendentes - 1 com pagamento rejeitado)');
 
   // ===== CRIAR 3 FAVORITOS =====
   const favorite1 = await prisma.favorite.create({

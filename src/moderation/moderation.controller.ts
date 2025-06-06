@@ -2,6 +2,7 @@ import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards, Request } 
 import { ModerationService } from './moderation.service';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../user/jwt-auth.guard';
+import { Roles } from '../auth/roles.decorator';
 
 @ApiTags('Moderation')
 @Controller('moderation')
@@ -15,12 +16,14 @@ export class ModerationController {
   async getPendingEquipment(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
+    @Query('search') search?: string,
     @Request() req?
   ) {
     return this.moderationService.getPendingEquipment(
       req.user.userId,
       page || 1,
-      limit || 10
+      limit || 10,
+      search
     );
   }
 
@@ -47,16 +50,21 @@ export class ModerationController {
   }
 
   @Get('history')
+  @Roles('ADMIN', 'MODERATOR_MANAGER', 'MODERATOR')
   @ApiOperation({ summary: 'Get moderation history' })
   async getModerationHistory(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
     @Request() req?
   ) {
     return this.moderationService.getModerationHistory(
       req.user.userId,
       page || 1,
-      limit || 10
+      limit || 10,
+      search,
+      status
     );
   }
 

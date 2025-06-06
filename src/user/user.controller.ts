@@ -73,6 +73,14 @@ export class UserController {
 
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Post('change-password')
+  @ApiOperation({ summary: 'Change user password' })
+  async changePassword(@Request() req, @Body() body: { currentPassword: string; newPassword: string }) {
+    return this.userService.changePassword(req.user.userId, body.currentPassword, body.newPassword);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Post(':id/verify-email')
   @ApiOperation({ summary: 'Send email verification' })
   async sendEmailVerification(@Param('id') id: string) {

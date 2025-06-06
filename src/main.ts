@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import * as bodyParser from 'body-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -34,6 +35,9 @@ async function bootstrap() {
 
   // Definir porta do servidor via variável de ambiente ou padrão 3000
   const PORT = process.env.PORT || 3000;
+  // Aumentar limite para 50MB, por exemplo
+  app.use(bodyParser.json({ limit: '50mb' }));
+  app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
   await app.listen(PORT);
   console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
 }

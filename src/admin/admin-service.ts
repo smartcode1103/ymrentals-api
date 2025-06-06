@@ -1,9 +1,13 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService
+  ) {}
 
   // ===== PERMISSION HELPERS =====
   private async ensureAdmin(userId: string) {
@@ -41,7 +45,59 @@ export class AdminService {
 
   // ===== DASHBOARD =====
   async getDashboardData(adminId: string, role: string) {
-    return this.getDashboardStats(adminId);
+    await this.ensureAdminOrModerator(adminId);
+
+    const [
+      totalUsers,
+      totalEquipment,
+      totalRentals,
+      pendingLandlords,
+      pendingEquipment,
+      activeRentals,
+      totalRevenue,
+      recentActivities
+    ] = await Promise.all([
+      this.prisma.user.count({ where: { deletedAt: null } }),
+      this.prisma.equipment.count({ where: { deletedAt: null } }),
+      this.prisma.rental.count({ where: { deletedAt: null } }),
+      this.prisma.user.count({
+        where: {
+          deletedAt: null,
+          userType: 'LANDLORD',
+          accountStatus: 'PENDING'
+        }
+      }),
+      this.prisma.equipment.count({
+        where: {
+          deletedAt: null,
+          moderationStatus: 'PENDING'
+        }
+      }),
+      this.prisma.rental.count({
+        where: {
+          deletedAt: null,
+          status: 'ACTIVE'
+        }
+      }),
+      this.prisma.rental.aggregate({
+        where: { status: 'COMPLETED', deletedAt: null },
+        _sum: { totalAmount: true }
+      }),
+      this.getRecentActivities(adminId)
+    ]);
+
+    return {
+      overview: {
+        totalUsers,
+        totalEquipment,
+        totalRentals,
+        pendingLandlords,
+        pendingEquipment,
+        activeRentals,
+        totalRevenue: totalRevenue._sum.totalAmount || 0
+      },
+      recentActivities
+    };
   }
 
   async getDashboardStats(adminId: string) {
@@ -79,99 +135,211 @@ export class AdminService {
     };
   }
 
-  async getStats(adminId: string, role: string) {
+  async getStats(adminId: string, role: string, period?: string) {
     await this.ensureAdminOrModerator(adminId);
+
+    // Calcular data de início baseada no período
+    let startDate: Date | undefined;
+    if (period) {
+      const now = new Date();
+      switch (period) {
+        case '1month':
+          startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+          break;
+        case '3months':
+          startDate = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+          break;
+        case '6months':
+          startDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+          break;
+        case '1year':
+          startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+          break;
+      }
+    }
 
     const [
       userStats,
       equipmentStats,
       rentalStats,
-      revenueStats
+      categoryStats,
+      monthlyGrowth
     ] = await Promise.all([
-      this.getUserStats(),
-      this.getEquipmentStats(),
-      this.getRentalStats(),
-      this.getRevenueStats()
+      this.getUserStats(startDate),
+      this.getEquipmentStats(startDate),
+      this.getRentalStats(startDate),
+      this.getCategoryStats(),
+      this.getMonthlyGrowth(period)
     ]);
 
     return {
-      users: userStats,
-      equipment: equipmentStats,
-      rentals: rentalStats,
-      revenue: revenueStats
+      userStats,
+      equipmentStats,
+      rentalStats,
+      categoryStats,
+      monthlyGrowth
     };
   }
 
-  private async getUserStats() {
-    const [total, tenants, landlords, pending, approved, rejected] = await Promise.all([
-      this.prisma.user.count({ where: { deletedAt: null } }),
-      this.prisma.user.count({ where: { deletedAt: null, userType: 'TENANT' } }),
-      this.prisma.user.count({ where: { deletedAt: null, userType: 'LANDLORD' } }),
-      this.prisma.user.count({ where: { deletedAt: null, accountStatus: 'PENDING' } }),
-      this.prisma.user.count({ where: { deletedAt: null, accountStatus: 'APPROVED' } }),
-      this.prisma.user.count({ where: { deletedAt: null, accountStatus: 'REJECTED' } })
+  private async getUserStats(startDate?: Date) {
+    const baseWhere = { deletedAt: null };
+    const periodWhere = startDate ? { ...baseWhere, createdAt: { gte: startDate } } : baseWhere;
+
+    const [total, tenants, landlords, pending, approved, rejected, thisMonth, byType, byStatus] = await Promise.all([
+      this.prisma.user.count({ where: baseWhere }),
+      this.prisma.user.count({ where: { ...baseWhere, userType: 'TENANT' } }),
+      this.prisma.user.count({ where: { ...baseWhere, userType: 'LANDLORD' } }),
+      this.prisma.user.count({ where: { ...baseWhere, accountStatus: 'PENDING' } }),
+      this.prisma.user.count({ where: { ...baseWhere, accountStatus: 'APPROVED' } }),
+      this.prisma.user.count({ where: { ...baseWhere, accountStatus: 'REJECTED' } }),
+      this.prisma.user.count({ where: periodWhere }),
+      this.prisma.user.groupBy({
+        by: ['userType'],
+        where: baseWhere,
+        _count: { userType: true }
+      }),
+      this.prisma.user.groupBy({
+        by: ['accountStatus'],
+        where: baseWhere,
+        _count: { accountStatus: true }
+      })
     ]);
 
-    return { total, tenants, landlords, pending, approved, rejected };
+    return { total, tenants, landlords, pending, approved, rejected, thisMonth, byType, byStatus };
   }
 
-  private async getEquipmentStats() {
-    const [total, pending, approved, rejected, available] = await Promise.all([
-      this.prisma.equipment.count({ where: { deletedAt: null } }),
-      this.prisma.equipment.count({ where: { deletedAt: null, moderationStatus: 'PENDING' } }),
-      this.prisma.equipment.count({ where: { deletedAt: null, moderationStatus: 'APPROVED' } }),
-      this.prisma.equipment.count({ where: { deletedAt: null, moderationStatus: 'REJECTED' } }),
-      this.prisma.equipment.count({ where: { deletedAt: null, isAvailable: true } })
+  private async getEquipmentStats(startDate?: Date) {
+    const baseWhere = { deletedAt: null };
+    const periodWhere = startDate ? { ...baseWhere, createdAt: { gte: startDate } } : baseWhere;
+
+    const [total, pending, approved, rejected, available, thisMonth, byStatus, byCategory] = await Promise.all([
+      this.prisma.equipment.count({ where: baseWhere }),
+      this.prisma.equipment.count({ where: { ...baseWhere, moderationStatus: 'PENDING' } }),
+      this.prisma.equipment.count({ where: { ...baseWhere, moderationStatus: 'APPROVED' } }),
+      this.prisma.equipment.count({ where: { ...baseWhere, moderationStatus: 'REJECTED' } }),
+      this.prisma.equipment.count({ where: { ...baseWhere, isAvailable: true } }),
+      this.prisma.equipment.count({ where: periodWhere }),
+      this.prisma.equipment.groupBy({
+        by: ['moderationStatus'],
+        where: baseWhere,
+        _count: { moderationStatus: true }
+      }),
+      this.prisma.equipment.groupBy({
+        by: ['category'],
+        where: baseWhere,
+        _count: { category: true }
+      })
     ]);
 
-    return { total, pending, approved, rejected, available };
+    return { total, pending, approved, rejected, available, thisMonth, byStatus, byCategory };
   }
 
-  private async getRentalStats() {
-    const [total, pending, active, completed, cancelled] = await Promise.all([
-      this.prisma.rental.count({ where: { deletedAt: null } }),
-      this.prisma.rental.count({ where: { deletedAt: null, status: 'PENDING' } }),
-      this.prisma.rental.count({ where: { deletedAt: null, status: 'ACTIVE' } }),
-      this.prisma.rental.count({ where: { deletedAt: null, status: 'COMPLETED' } }),
-      this.prisma.rental.count({ where: { deletedAt: null, status: 'CANCELLED' } })
-    ]);
+  private async getRentalStats(startDate?: Date) {
+    const baseWhere = { deletedAt: null };
+    const periodWhere = startDate ? { ...baseWhere, createdAt: { gte: startDate } } : baseWhere;
 
-    return { total, pending, active, completed, cancelled };
-  }
-
-  private async getRevenueStats() {
-    const [totalRevenue, monthlyRevenue, weeklyRevenue] = await Promise.all([
+    const [total, pending, active, completed, cancelled, thisMonth, revenue, byStatus] = await Promise.all([
+      this.prisma.rental.count({ where: baseWhere }),
+      this.prisma.rental.count({ where: { ...baseWhere, status: 'PENDING' } }),
+      this.prisma.rental.count({ where: { ...baseWhere, status: 'ACTIVE' } }),
+      this.prisma.rental.count({ where: { ...baseWhere, status: 'COMPLETED' } }),
+      this.prisma.rental.count({ where: { ...baseWhere, status: 'CANCELLED' } }),
+      this.prisma.rental.count({ where: periodWhere }),
       this.prisma.rental.aggregate({
-        where: { status: 'COMPLETED', deletedAt: null },
+        where: { ...baseWhere, status: 'COMPLETED' },
         _sum: { totalAmount: true }
       }),
-      this.prisma.rental.aggregate({
-        where: {
-          status: 'COMPLETED',
-          deletedAt: null,
-          createdAt: {
-            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-          }
-        },
-        _sum: { totalAmount: true }
-      }),
-      this.prisma.rental.aggregate({
-        where: {
-          status: 'COMPLETED',
-          deletedAt: null,
-          createdAt: {
-            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-          }
-        },
-        _sum: { totalAmount: true }
+      this.prisma.rental.groupBy({
+        by: ['status'],
+        where: baseWhere,
+        _count: { status: true }
       })
     ]);
 
     return {
-      total: totalRevenue._sum.totalAmount || 0,
-      monthly: monthlyRevenue._sum.totalAmount || 0,
-      weekly: weeklyRevenue._sum.totalAmount || 0
+      total,
+      pending,
+      active,
+      completed,
+      cancelled,
+      thisMonth,
+      revenue: revenue._sum.totalAmount || 0,
+      byStatus
     };
+  }
+
+  private async getCategoryStats() {
+    return this.prisma.category.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        _count: {
+          select: { Equipment: true }
+        }
+      },
+      orderBy: {
+        Equipment: {
+          _count: 'desc'
+        }
+      }
+    });
+  }
+
+  private async getMonthlyGrowth(period?: string) {
+    const months = period === '1year' ? 12 : 6;
+    const monthlyData: Array<{
+      month: string;
+      users: number;
+      equipment: number;
+      rentals: number;
+    }> = [];
+
+    for (let i = months - 1; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+      const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+
+      const [users, equipment, rentals] = await Promise.all([
+        this.prisma.user.count({
+          where: {
+            deletedAt: null,
+            createdAt: {
+              gte: startOfMonth,
+              lte: endOfMonth
+            }
+          }
+        }),
+        this.prisma.equipment.count({
+          where: {
+            deletedAt: null,
+            createdAt: {
+              gte: startOfMonth,
+              lte: endOfMonth
+            }
+          }
+        }),
+        this.prisma.rental.count({
+          where: {
+            deletedAt: null,
+            createdAt: {
+              gte: startOfMonth,
+              lte: endOfMonth
+            }
+          }
+        })
+      ]);
+
+      monthlyData.push({
+        month: date.toLocaleDateString('pt-AO', { month: 'short', year: 'numeric' }),
+        users,
+        equipment,
+        rentals
+      });
+    }
+
+    return monthlyData;
   }
 
   async getRecentActivities(adminId: string) {
@@ -452,6 +620,7 @@ export class AdminService {
         companyAddress: true,
         companyDocuments: true,
         nif: true,
+        accountStatus: true,
         createdAt: true,
         updatedAt: true
       },
@@ -488,6 +657,76 @@ export class AdminService {
       where: { id: landlordId },
       data: updateData
     });
+  }
+
+  async getLandlordHistory(adminId: string, page: number = 1, limit: number = 10, search?: string, status?: string) {
+    await this.ensureAdminOrManager(adminId);
+
+    const skip = (page - 1) * limit;
+
+    // Construir condições de busca
+    const whereCondition: any = {
+      deletedAt: null,
+      userType: 'LANDLORD',
+    };
+
+    // Filtrar por status específico se fornecido
+    if (status && (status === 'APPROVED' || status === 'REJECTED')) {
+      whereCondition.accountStatus = status;
+    } else {
+      // Se não especificado, buscar ambos
+      whereCondition.accountStatus = { in: ['APPROVED', 'REJECTED'] };
+    }
+
+    // Adicionar filtro de pesquisa
+    if (search) {
+      whereCondition.OR = [
+        { fullName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { companyName: { contains: search, mode: 'insensitive' } },
+        { nif: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
+    const [landlords, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where: whereCondition,
+        select: {
+          id: true,
+          email: true,
+          fullName: true,
+          phoneNumber: true,
+          companyName: true,
+          companyType: true,
+          companyAddress: true,
+          nif: true,
+          companyDocuments: true,
+          createdAt: true,
+          accountStatus: true,
+          approvedAt: true,
+          rejectedAt: true,
+          approvedBy: true,
+          rejectedBy: true,
+          rejectionReason: true,
+        },
+        orderBy: [
+          { rejectedAt: 'desc' },
+          { approvedAt: 'desc' },
+          { createdAt: 'desc' }
+        ],
+        skip,
+        take: limit,
+      }),
+      this.prisma.user.count({ where: whereCondition })
+    ]);
+
+    return {
+      data: landlords,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    };
   }
 
   // ===== MODERATOR MANAGEMENT =====
@@ -700,12 +939,18 @@ export class AdminService {
     page: number;
     limit: number;
     status?: string;
+    paymentReceiptStatus?: string;
   }) {
-    const { page, limit, status } = filters;
+    const { page, limit, status, paymentReceiptStatus } = filters;
     const where: any = { deletedAt: null };
 
     if (status) {
       where.status = status.toUpperCase();
+    }
+
+    if (paymentReceiptStatus) {
+      where.paymentReceiptStatus = paymentReceiptStatus.toUpperCase();
+      where.paymentReceipt = { not: null }; // Só incluir aluguéis com comprovativo
     }
 
     const skip = (page - 1) * limit;
@@ -1133,5 +1378,315 @@ export class AdminService {
         owner: true
       }
     });
+  }
+
+  // ===== EQUIPMENT AVAILABILITY MANAGEMENT =====
+  async getAllEquipment(adminId: string, role: string) {
+    await this.ensureAdminOrModerator(adminId);
+
+    const equipment = await this.prisma.equipment.findMany({
+      where: {
+        deletedAt: null
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    return {
+      success: true,
+      data: equipment,
+      total: equipment.length
+    };
+  }
+
+  async toggleEquipmentAvailability(equipmentId: string, isAvailable: boolean, moderatorId: string) {
+    await this.ensureAdminOrModerator(moderatorId);
+
+    const equipment = await this.prisma.equipment.findUnique({
+      where: { id: equipmentId, deletedAt: null },
+      include: {
+        owner: true
+      }
+    });
+
+    if (!equipment) {
+      throw new NotFoundException('Equipment not found');
+    }
+
+    const updatedEquipment = await this.prisma.equipment.update({
+      where: { id: equipmentId },
+      data: {
+        isAvailable: isAvailable,
+        updatedAt: new Date()
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    // Notificar o proprietário sobre a mudança
+    await this.notificationsService.createNotification({
+      userId: equipment.ownerId,
+      title: 'Disponibilidade Alterada',
+      message: `A disponibilidade do seu equipamento "${equipment.name}" foi ${isAvailable ? 'ativada' : 'desativada'} por um moderador.`,
+      type: 'INFO',
+      data: JSON.stringify({ equipmentId, isAvailable, type: 'availability_change' })
+    });
+
+    return {
+      success: true,
+      message: `Disponibilidade ${isAvailable ? 'ativada' : 'desativada'} com sucesso`,
+      data: updatedEquipment
+    };
+  }
+
+  // ===== EQUIPMENT EDITS MANAGEMENT =====
+  async getEquipmentEdits(adminId: string, role: string) {
+    await this.ensureAdminOrModerator(adminId);
+
+    const edits = await this.prisma.equipmentEdit.findMany({
+      include: {
+        equipment: {
+          include: {
+            owner: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                companyName: true
+              }
+            }
+          }
+        },
+        moderator: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    return {
+      success: true,
+      data: edits,
+      total: edits.length
+    };
+  }
+
+  async moderateEquipmentEdit(editId: string, isApproved: boolean, moderatorId: string, rejectionReason?: string) {
+    await this.ensureAdminOrModerator(moderatorId);
+
+    const edit = await this.prisma.equipmentEdit.findUnique({
+      where: { id: editId },
+      include: {
+        equipment: {
+          include: {
+            owner: true
+          }
+        }
+      }
+    });
+
+    if (!edit) {
+      throw new NotFoundException('Equipment edit not found');
+    }
+
+    if (edit.status !== 'PENDING') {
+      throw new BadRequestException('Edit has already been moderated');
+    }
+
+    // Atualizar o status da edição
+    const updateData: any = {
+      status: isApproved ? 'APPROVED' : 'REJECTED',
+      moderatedBy: moderatorId,
+      moderatedAt: new Date()
+    };
+
+    if (!isApproved && rejectionReason) {
+      updateData.rejectionReason = rejectionReason;
+    }
+
+    const updatedEdit = await this.prisma.equipmentEdit.update({
+      where: { id: editId },
+      data: updateData,
+      include: {
+        equipment: {
+          include: {
+            owner: true
+          }
+        }
+      }
+    });
+
+    // Se aprovado, aplicar as mudanças ao equipamento
+    if (isApproved) {
+      const equipmentUpdateData: any = {};
+
+      if (edit.name) equipmentUpdateData.name = edit.name;
+      if (edit.description) equipmentUpdateData.description = edit.description;
+      if (edit.category) equipmentUpdateData.category = edit.category;
+      if (edit.categoryId) equipmentUpdateData.categoryId = edit.categoryId;
+      if (edit.price) equipmentUpdateData.price = edit.price;
+      if (edit.pricePeriod) equipmentUpdateData.pricePeriod = edit.pricePeriod;
+      if (edit.salePrice) equipmentUpdateData.salePrice = edit.salePrice;
+      if (edit.images && edit.images.length > 0) equipmentUpdateData.images = edit.images;
+      if (edit.videos && edit.videos.length > 0) equipmentUpdateData.videos = edit.videos;
+      if (edit.documents && edit.documents.length > 0) equipmentUpdateData.documents = edit.documents;
+      if (edit.specifications) equipmentUpdateData.specifications = edit.specifications;
+      if (edit.isAvailable !== undefined) equipmentUpdateData.isAvailable = edit.isAvailable;
+      if (edit.addressId) equipmentUpdateData.addressId = edit.addressId;
+
+      if (Object.keys(equipmentUpdateData).length > 0) {
+        equipmentUpdateData.updatedAt = new Date();
+
+        await this.prisma.equipment.update({
+          where: { id: edit.equipmentId },
+          data: equipmentUpdateData
+        });
+      }
+    }
+
+    // Notificar o proprietário
+    await this.notificationsService.createNotification({
+      userId: edit.equipment.ownerId,
+      title: isApproved ? 'Edição Aprovada' : 'Edição Rejeitada',
+      message: isApproved
+        ? `Suas alterações no equipamento "${edit.equipment.name}" foram aprovadas e aplicadas.`
+        : `Suas alterações no equipamento "${edit.equipment.name}" foram rejeitadas. Motivo: ${rejectionReason}`,
+      type: isApproved ? 'SUCCESS' : 'ERROR',
+      data: JSON.stringify({ equipmentId: edit.equipmentId, editId, type: 'equipment_edit_moderation' })
+    });
+
+    return {
+      success: true,
+      message: `Edição ${isApproved ? 'aprovada' : 'rejeitada'} com sucesso`,
+      data: updatedEdit
+    };
+  }
+
+  // ===== SYSTEM CONFIGURATION =====
+  async getSystemConfig(adminId: string) {
+    await this.ensureAdmin(adminId);
+
+    // Buscar configurações existentes ou retornar padrões
+    const config = await this.prisma.systemConfig.findFirst();
+
+    if (!config) {
+      return this.getDefaultConfig();
+    }
+
+    return config;
+  }
+
+  async updateSystemConfig(adminId: string, configData: any) {
+    await this.ensureAdmin(adminId);
+
+    // Validações
+    if (!configData.siteName || configData.siteName.trim().length === 0) {
+      throw new BadRequestException('Nome do site é obrigatório');
+    }
+
+    if (!configData.contactEmail || !configData.supportEmail) {
+      throw new BadRequestException('Emails de contato e suporte são obrigatórios');
+    }
+
+    if (configData.maxFileSize < 1 || configData.maxFileSize > 100) {
+      throw new BadRequestException('Tamanho máximo de arquivo deve estar entre 1 e 100 MB');
+    }
+
+    if (configData.passwordMinLength < 4 || configData.passwordMinLength > 20) {
+      throw new BadRequestException('Comprimento mínimo da senha deve estar entre 4 e 20 caracteres');
+    }
+
+    // Verificar se já existe configuração
+    const existingConfig = await this.prisma.systemConfig.findFirst();
+
+    if (existingConfig) {
+      return this.prisma.systemConfig.update({
+        where: { id: existingConfig.id },
+        data: {
+          ...configData,
+          updatedAt: new Date(),
+          updatedBy: adminId
+        }
+      });
+    } else {
+      return this.prisma.systemConfig.create({
+        data: {
+          ...configData,
+          createdBy: adminId,
+          updatedBy: adminId
+        }
+      });
+    }
+  }
+
+  async resetSystemConfig(adminId: string) {
+    await this.ensureAdmin(adminId);
+
+    const defaultConfig = this.getDefaultConfig();
+    const existingConfig = await this.prisma.systemConfig.findFirst();
+
+    if (existingConfig) {
+      return this.prisma.systemConfig.update({
+        where: { id: existingConfig.id },
+        data: {
+          ...defaultConfig,
+          updatedAt: new Date(),
+          updatedBy: adminId
+        }
+      });
+    } else {
+      return this.prisma.systemConfig.create({
+        data: {
+          ...defaultConfig,
+          createdBy: adminId,
+          updatedBy: adminId
+        }
+      });
+    }
+  }
+
+  private getDefaultConfig() {
+    return {
+      siteName: 'YM Rentals',
+      siteDescription: 'Plataforma de aluguel de equipamentos em Angola',
+      contactEmail: 'contato@ymrentals.com',
+      supportEmail: 'suporte@ymrentals.com',
+      maxFileSize: 10,
+      allowedFileTypes: ['jpg', 'jpeg', 'png', 'pdf'],
+      emailNotifications: true,
+      smsNotifications: false,
+      maintenanceMode: false,
+      registrationEnabled: true,
+      autoApproveEquipment: false,
+      autoApproveLandlords: false,
+      maxEquipmentPerUser: 50,
+      sessionTimeout: 24,
+      passwordMinLength: 6,
+      requireEmailVerification: true,
+      requirePhoneVerification: false,
+    };
   }
 }

@@ -54,6 +54,7 @@ model User {
   Chat_Chat_initiatorIdToUser             Chat[]          @relation("Chat_initiatorIdToUser")
   Chat_Chat_receiverIdToUser              Chat[]          @relation("Chat_receiverIdToUser")
   ownedEquipments                         Equipment[]     @relation("OwnerEquipments")
+  moderatedEquipments                     Equipment[]     @relation("ModeratedEquipments")
   Favorite                                Favorite[]
   Message                                 Message[]
   ownerRentals                            Rental[]        @relation("OwnerRentals")
@@ -109,6 +110,7 @@ model Equipment {
   rejectionReason  String?
   Address          Address?        @relation(fields: [addressId], references: [id])
   owner            User            @relation("OwnerEquipments", fields: [ownerId], references: [id])
+  moderatedByUser  User?           @relation("ModeratedEquipments", fields: [moderatedBy], references: [id])
   Category         Category?       @relation(fields: [categoryId], references: [id])
   Favorite         Favorite[]
   rentals          Rental[]
@@ -380,4 +382,31 @@ enum PaymentReceiptStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+model SystemConfig {
+  id                      String   @id @default(uuid())
+  siteName                String   @default("YM Rentals")
+  siteDescription         String   @default("Plataforma de aluguel de equipamentos em Angola")
+  contactEmail            String   @default("contato@ymrentals.com")
+  supportEmail            String   @default("suporte@ymrentals.com")
+  maxFileSize             Int      @default(10)
+  allowedFileTypes        String[] @default(["jpg", "jpeg", "png", "pdf"])
+  emailNotifications      Boolean  @default(true)
+  smsNotifications        Boolean  @default(false)
+  maintenanceMode         Boolean  @default(false)
+  registrationEnabled     Boolean  @default(true)
+  autoApproveEquipment    Boolean  @default(false)
+  autoApproveLandlords    Boolean  @default(false)
+  maxEquipmentPerUser     Int      @default(50)
+  sessionTimeout          Int      @default(24)
+  passwordMinLength       Int      @default(6)
+  requireEmailVerification Boolean @default(true)
+  requirePhoneVerification Boolean @default(false)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  createdBy               String?
+  updatedBy               String?
+
+  @@map("system_config")
 }

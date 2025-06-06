@@ -138,6 +138,38 @@ export class UserService {
     return userWithoutPassword;
   }
 
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId, deletedAt: null }
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Verificar senha atual
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    // Validar nova senha
+    if (newPassword.length < 6) {
+      throw new BadRequestException('New password must be at least 6 characters long');
+    }
+
+    // Hash da nova senha
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    // Atualizar senha
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedNewPassword }
+    });
+
+    return { message: 'Password changed successfully' };
+  }
+
   async remove(id: string) {
     const user = await this.findOne(id);
     return this.prisma.user.update({

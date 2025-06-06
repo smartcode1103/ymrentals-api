@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Put, Param, Body, Query, UseGuards, Request } from '@nestjs/common';
 import { AdminService } from './admin-service';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../user/jwt-auth.guard';
@@ -23,8 +23,8 @@ export class AdminController {
   @Get('stats')
   @Roles('ADMIN', 'MODERATOR_MANAGER', 'MODERATOR')
   @ApiOperation({ summary: 'Get system statistics' })
-  async getStats(@Request() req) {
-    return this.adminService.getStats(req.user.userId, req.user.role);
+  async getStats(@Request() req, @Query('period') period?: string) {
+    return this.adminService.getStats(req.user.userId, req.user.role, period);
   }
 
   @Get('recent-activities')
@@ -107,6 +107,25 @@ export class AdminController {
     );
   }
 
+  @Get('landlord-history')
+  @Roles('ADMIN', 'MODERATOR_MANAGER')
+  @ApiOperation({ summary: 'Get landlord validation history' })
+  async getLandlordHistory(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Request() req?
+  ) {
+    return this.adminService.getLandlordHistory(
+      req.user.userId,
+      page || 1,
+      limit || 10,
+      search,
+      status
+    );
+  }
+
   // ===== MODERATOR MANAGEMENT =====
   @Get('moderators')
   @Roles('ADMIN', 'MODERATOR_MANAGER')
@@ -166,6 +185,52 @@ export class AdminController {
     return this.adminService.updateEquipmentStatus(id, status, reason);
   }
 
+  @Get('equipment/all')
+  @Roles('ADMIN', 'MODERATOR_MANAGER', 'MODERATOR')
+  @ApiOperation({ summary: 'Get all equipment for availability management' })
+  async getAllEquipment(@Request() req) {
+    return this.adminService.getAllEquipment(req.user.userId, req.user.role);
+  }
+
+  @Patch('equipment/:id/availability')
+  @Roles('ADMIN', 'MODERATOR_MANAGER', 'MODERATOR')
+  @ApiOperation({ summary: 'Toggle equipment availability' })
+  async toggleEquipmentAvailability(
+    @Param('id') equipmentId: string,
+    @Body() body: { isAvailable: boolean },
+    @Request() req
+  ) {
+    return this.adminService.toggleEquipmentAvailability(
+      equipmentId,
+      body.isAvailable,
+      req.user.userId
+    );
+  }
+
+  // ===== EQUIPMENT EDITS MANAGEMENT =====
+  @Get('equipment-edits')
+  @Roles('ADMIN', 'MODERATOR_MANAGER', 'MODERATOR')
+  @ApiOperation({ summary: 'Get all equipment edits for moderation' })
+  async getEquipmentEdits(@Request() req) {
+    return this.adminService.getEquipmentEdits(req.user.userId, req.user.role);
+  }
+
+  @Patch('equipment-edits/:id/moderate')
+  @Roles('ADMIN', 'MODERATOR_MANAGER', 'MODERATOR')
+  @ApiOperation({ summary: 'Moderate equipment edit' })
+  async moderateEquipmentEdit(
+    @Param('id') editId: string,
+    @Body() body: { isApproved: boolean; rejectionReason?: string },
+    @Request() req
+  ) {
+    return this.adminService.moderateEquipmentEdit(
+      editId,
+      body.isApproved,
+      req.user.userId,
+      body.rejectionReason
+    );
+  }
+
   @Get('rentals')
   @Roles('ADMIN', 'MODERATOR_MANAGER', 'MODERATOR')
   @ApiOperation({ summary: 'Get all rentals with pagination' })
@@ -173,12 +238,14 @@ export class AdminController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('status') status?: string,
+    @Query('paymentReceiptStatus') paymentReceiptStatus?: string,
     @Request() req?
   ) {
     return this.adminService.getRentals({
       page: page || 1,
       limit: limit || 10,
       status,
+      paymentReceiptStatus,
     });
   }
 
@@ -268,5 +335,27 @@ export class AdminController {
     @Request() req
   ) {
     return this.adminService.validatePaymentReceipt(rentalId, body.isApproved, req.user.userId, body.rejectionReason);
+  }
+
+  // ===== SYSTEM CONFIGURATION =====
+  @Get('system-config')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Get system configuration (Admin only)' })
+  async getSystemConfig(@Request() req) {
+    return this.adminService.getSystemConfig(req.user.userId);
+  }
+
+  @Put('system-config')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Update system configuration (Admin only)' })
+  async updateSystemConfig(@Body() config: any, @Request() req) {
+    return this.adminService.updateSystemConfig(req.user.userId, config);
+  }
+
+  @Post('system-config/reset')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Reset system configuration to defaults (Admin only)' })
+  async resetSystemConfig(@Request() req) {
+    return this.adminService.resetSystemConfig(req.user.userId);
   }
 }

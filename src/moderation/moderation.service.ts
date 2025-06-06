@@ -7,17 +7,68 @@ export class ModerationService {
   constructor(private readonly prisma: PrismaService) {}
 
   // Listar equipamentos pendentes de moderação
-  async getPendingEquipment(moderatorId: string, page: number = 1, limit: number = 10) {
+  async getPendingEquipment(moderatorId: string, page: number = 1, limit: number = 10, search?: string) {
     await this.ensureModerator(moderatorId);
 
     const skip = (page - 1) * limit;
 
+    // Construir condições de busca
+    const whereCondition: any = {
+      moderationStatus: EquipmentStatus.PENDING,
+      deletedAt: null,
+    };
+
+    // Adicionar pesquisa se fornecida
+    if (search && search.trim()) {
+      whereCondition.OR = [
+        {
+          name: {
+            contains: search.trim(),
+            mode: 'insensitive',
+          },
+        },
+        {
+          description: {
+            contains: search.trim(),
+            mode: 'insensitive',
+          },
+        },
+        {
+          category: {
+            contains: search.trim(),
+            mode: 'insensitive',
+          },
+        },
+        {
+          owner: {
+            fullName: {
+              contains: search.trim(),
+              mode: 'insensitive',
+            },
+          },
+        },
+        {
+          owner: {
+            email: {
+              contains: search.trim(),
+              mode: 'insensitive',
+            },
+          },
+        },
+        {
+          owner: {
+            companyName: {
+              contains: search.trim(),
+              mode: 'insensitive',
+            },
+          },
+        },
+      ];
+    }
+
     const [equipment, total] = await Promise.all([
       this.prisma.equipment.findMany({
-        where: {
-          moderationStatus: EquipmentStatus.PENDING,
-          deletedAt: null,
-        },
+        where: whereCondition,
         include: {
           owner: {
             select: {
@@ -28,16 +79,20 @@ export class ModerationService {
               companyType: true,
             },
           },
+          Address: {
+            select: {
+              street: true,
+              city: true,
+              province: true,
+            },
+          },
         },
         skip,
         take: limit,
         orderBy: { createdAt: 'asc' }, // Mais antigos primeiro
       }),
       this.prisma.equipment.count({
-        where: {
-          moderationStatus: EquipmentStatus.PENDING,
-          deletedAt: null,
-        },
+        where: whereCondition,
       }),
     ]);
 
@@ -106,24 +161,107 @@ export class ModerationService {
   }
 
   // Histórico de moderação
-  async getModerationHistory(moderatorId: string, page: number = 1, limit: number = 10) {
+  async getModerationHistory(moderatorId: string, page: number = 1, limit: number = 10, search?: string, status?: string) {
     await this.ensureModerator(moderatorId);
 
     const skip = (page - 1) * limit;
 
+    // Construir condições de busca
+    const whereCondition: any = {
+      moderatedBy: { not: null },
+      deletedAt: null,
+    };
+
+    // Filtrar por status específico se fornecido
+    if (status && (status === 'APPROVED' || status === 'REJECTED')) {
+      whereCondition.moderationStatus = status;
+    } else {
+      // Se não especificado, buscar ambos
+      whereCondition.moderationStatus = { in: [EquipmentStatus.APPROVED, EquipmentStatus.REJECTED] };
+    }
+
+    // Adicionar pesquisa se fornecida
+    if (search && search.trim()) {
+      whereCondition.OR = [
+        {
+          name: {
+            contains: search.trim(),
+            mode: 'insensitive',
+          },
+        },
+        {
+          description: {
+            contains: search.trim(),
+            mode: 'insensitive',
+          },
+        },
+        {
+          category: {
+            contains: search.trim(),
+            mode: 'insensitive',
+          },
+        },
+        {
+          owner: {
+            fullName: {
+              contains: search.trim(),
+              mode: 'insensitive',
+            },
+          },
+        },
+        {
+          owner: {
+            email: {
+              contains: search.trim(),
+              mode: 'insensitive',
+            },
+          },
+        },
+        {
+          owner: {
+            companyName: {
+              contains: search.trim(),
+              mode: 'insensitive',
+            },
+          },
+        },
+        {
+          moderatedByUser: {
+            fullName: {
+              contains: search.trim(),
+              mode: 'insensitive',
+            },
+          },
+        },
+      ];
+    }
+
+    // Buscar todos os equipamentos moderados (não apenas do moderador atual)
     const [equipment, total] = await Promise.all([
       this.prisma.equipment.findMany({
-        where: {
-          moderationStatus: { in: [EquipmentStatus.APPROVED, EquipmentStatus.REJECTED] },
-          moderatedBy: moderatorId,
-          deletedAt: null,
-        },
+        where: whereCondition,
         include: {
           owner: {
             select: {
               id: true,
               fullName: true,
               email: true,
+              companyName: true,
+              companyType: true,
+            },
+          },
+          moderatedByUser: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
+          },
+          Address: {
+            select: {
+              street: true,
+              city: true,
+              province: true,
             },
           },
         },
@@ -132,11 +270,7 @@ export class ModerationService {
         orderBy: { moderatedAt: 'desc' },
       }),
       this.prisma.equipment.count({
-        where: {
-          moderationStatus: { in: [EquipmentStatus.APPROVED, EquipmentStatus.REJECTED] },
-          moderatedBy: moderatorId,
-          deletedAt: null,
-        },
+        where: whereCondition,
       }),
     ]);
 
