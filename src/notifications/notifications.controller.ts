@@ -12,13 +12,17 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../user/jwt-auth.guard';
 import { NotificationsService } from './notifications.service';
+import { NotificationsGateway } from './notifications.gateway';
 
 @ApiTags('notifications')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('notifications')
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(
+    private readonly notificationsService: NotificationsService,
+    private readonly notificationsGateway: NotificationsGateway
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get user notifications' })
@@ -44,7 +48,15 @@ export class NotificationsController {
   @Patch(':id/read')
   @ApiOperation({ summary: 'Mark notification as read' })
   async markAsRead(@Request() req, @Param('id') id: string) {
-    return this.notificationsService.markAsRead(req.user.sub, id);
+    try {
+      const result = await this.notificationsService.markAsRead(req.user.sub, id);
+      return result;
+    } catch (error) {
+      if (error.message === 'Notificação não encontrada') {
+        throw new Error('Notification not found');
+      }
+      throw error;
+    }
   }
 
   @Patch('mark-all-read')

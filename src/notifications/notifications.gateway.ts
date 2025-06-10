@@ -9,7 +9,8 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
-import { Logger } from '@nestjs/common';
+import { Logger, Inject, forwardRef } from '@nestjs/common';
+import { NotificationsService } from './notifications.service';
 
 @WebSocketGateway({
   cors: true,
@@ -23,14 +24,19 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   private connectedUsers = new Map<string, string>(); // socketId -> userId
   private userSockets = new Map<string, Set<string>>(); // userId -> Set<socketId>
 
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    @Inject(forwardRef(() => NotificationsService))
+    private readonly notificationsService: NotificationsService
+  ) {}
 
   async handleConnection(client: Socket) {
     try {
       const token = client.handshake.auth?.token || client.handshake.headers?.authorization?.replace('Bearer ', '');
-      
+
       if (!token) {
         this.logger.warn('Client connected without token');
+        client.emit('auth_error', { error: 'Token não fornecido' });
         client.disconnect();
         return;
       }
@@ -54,6 +60,19 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
 
     } catch (error) {
       this.logger.error('Error during connection:', error);
+
+      // Tratar diferentes tipos de erro JWT
+      if (error.name === 'TokenExpiredError') {
+        this.logger.warn(`Token expired for client ${client.id}`);
+        client.emit('auth_error', { error: 'Token expirado', code: 'TOKEN_EXPIRED' });
+      } else if (error.name === 'JsonWebTokenError') {
+        this.logger.warn(`Invalid token for client ${client.id}`);
+        client.emit('auth_error', { error: 'Token inválido', code: 'INVALID_TOKEN' });
+      } else {
+        this.logger.error(`Unexpected error for client ${client.id}:`, error);
+        client.emit('auth_error', { error: 'Erro de autenticação', code: 'AUTH_ERROR' });
+      }
+
       client.disconnect();
     }
   }
@@ -104,42 +123,20 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
     this.logger.log('Broadcast notification sent to all connected users');
   }
 
-  @SubscribeMessage('mark_notification_read')
-  async handleMarkAsRead(
-    @MessageBody() data: { notificationId: string },
-    @ConnectedSocket() client: Socket
-  ) {
-    const userId = this.connectedUsers.get(client.id);
-    
-    if (!userId) {
-      return { error: 'User not authenticated' };
-    }
-
-    try {
-      // Aqui você pode adicionar lógica para marcar como lida no banco
-      // Por enquanto, apenas confirma a ação
-      
-      client.emit('notification_marked_read', { notificationId: data.notificationId });
-      return { success: true };
-    } catch (error) {
-      this.logger.error('Error marking notification as read:', error);
-      return { error: 'Failed to mark notification as read' };
-    }
-  }
+  // Removed mark_notification_read WebSocket handler since we're using REST API only
 
   @SubscribeMessage('get_unread_count')
   async handleGetUnreadCount(@ConnectedSocket() client: Socket) {
     const userId = this.connectedUsers.get(client.id);
-    
+
     if (!userId) {
       return { error: 'User not authenticated' };
     }
 
     try {
-      // Aqui você pode buscar o count real do banco
-      // Por enquanto, retorna um valor mock
-      const unreadCount = 0; // Implementar busca real
-      
+      // Buscar contagem real do banco de dados
+      const unreadCount = await this.notificationsService.getUnreadCount(userId);
+
       client.emit('unread_count', { count: unreadCount });
       return { success: true, count: unreadCount };
     } catch (error) {
@@ -152,6 +149,8 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   isUserOnline(userId: string): boolean {
     return this.userSockets.has(userId) && this.userSockets.get(userId)!.size > 0;
   }
+
+  // Removed emitNotificationMarkedRead method since we're using REST API only
 
   // Método para obter estatísticas de conexão
   getConnectionStats() {

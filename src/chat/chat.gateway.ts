@@ -37,6 +37,7 @@ import {
         const token = client.handshake.auth?.token || client.handshake.query.token as string;
         if (!token) {
           this.logger.warn('Client connected without token');
+          client.emit('auth_error', { error: 'Token não fornecido' });
           client.disconnect();
           return;
         }
@@ -78,6 +79,19 @@ import {
 
       } catch (error) {
         this.logger.error('Error during connection:', error);
+
+        // Tratar diferentes tipos de erro JWT
+        if (error.name === 'TokenExpiredError') {
+          this.logger.warn(`Token expired for client ${client.id}`);
+          client.emit('auth_error', { error: 'Token expirado', code: 'TOKEN_EXPIRED' });
+        } else if (error.name === 'JsonWebTokenError') {
+          this.logger.warn(`Invalid token for client ${client.id}`);
+          client.emit('auth_error', { error: 'Token inválido', code: 'INVALID_TOKEN' });
+        } else {
+          this.logger.error(`Unexpected error for client ${client.id}:`, error);
+          client.emit('auth_error', { error: 'Erro de autenticação', code: 'AUTH_ERROR' });
+        }
+
         client.disconnect();
       }
     }

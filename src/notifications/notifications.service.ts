@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { NotificationsGateway } from './notifications.gateway';
@@ -19,6 +19,7 @@ export class NotificationsService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
+    @Inject(forwardRef(() => NotificationsGateway))
     private notificationsGateway: NotificationsGateway,
   ) {}
 
@@ -103,16 +104,28 @@ export class NotificationsService {
 
   async markAsRead(userId: string, notificationId: string) {
     const notification = await this.prisma.notifications.findFirst({
-      where: { id: notificationId, userId },
+      where: {
+        id: notificationId,
+        userId,
+        deletedAt: null // Only consider non-deleted notifications
+      },
     });
 
     if (!notification) {
       throw new Error('Notificação não encontrada');
     }
 
+    // If already read, return the notification without updating
+    if (notification.isRead) {
+      return notification;
+    }
+
     return this.prisma.notifications.update({
       where: { id: notificationId },
-      data: { isRead: true },
+      data: {
+        isRead: true,
+        updatedAt: new Date()
+      },
     });
   }
 
