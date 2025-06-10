@@ -223,6 +223,7 @@ model Message {
   createdAt DateTime @default(now())
   chatId    String
   senderId  String
+  isRead    Boolean  @default(false)
   Chat      Chat     @relation(fields: [chatId], references: [id])
   User      User     @relation(fields: [senderId], references: [id])
 }

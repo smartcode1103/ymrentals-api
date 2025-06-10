@@ -45,11 +45,11 @@ import {
         // Armazenar conexão
         this.connectedUsers.set(client.id, userId);
 
-        // TODO: Implementar getUserConversations no ChatService
-        // const conversations = await this.chatService.getUserConversations(userId);
-        // conversations.forEach(conv => {
-        //   client.join(`conversation_${conv.id}`);
-        // });
+        // Juntar usuário às salas de suas conversas
+        const conversations = await this.chatService.getUserConversations(userId);
+        conversations.forEach(conv => {
+          client.join(`conversation_${conv.id}`);
+        });
 
         this.logger.log(`User ${userId} connected with socket ${client.id}`);
 
@@ -89,8 +89,8 @@ import {
 
         // Emitir a nova mensagem para todos os usuários na conversa
         this.server.to(`conversation_${data.conversationId}`).emit('new_message', {
-          type: 'new_message',
-          message
+          ...message,
+          conversationId: data.conversationId
         });
 
         return { success: true, message };
@@ -139,8 +139,7 @@ import {
           return { error: 'User not authenticated' };
         }
 
-        // TODO: Implementar markMessagesAsRead no ChatService
-        // await this.chatService.markMessagesAsRead(data.conversationId, userId);
+        await this.chatService.markMessagesAsRead(data.conversationId, userId);
 
         // Notificar outros usuários na conversa que as mensagens foram lidas
         client.to(`conversation_${data.conversationId}`).emit('message_read', {

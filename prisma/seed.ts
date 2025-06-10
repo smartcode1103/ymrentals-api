@@ -10,12 +10,15 @@ async function main() {
   await prisma.notifications.deleteMany();
   await prisma.message.deleteMany();
   await prisma.chat.deleteMany();
+  await prisma.blockedUser.deleteMany();
   await prisma.favorite.deleteMany();
   await prisma.rental.deleteMany();
+  await prisma.cart.deleteMany();
+  await prisma.equipmentEdit.deleteMany(); // Excluir equipment_edits antes de equipment
   await prisma.equipment.deleteMany();
   await prisma.category.deleteMany();
   await prisma.content.deleteMany();
-  await prisma.upload.deleteMany(); // Adicionar Upload antes de User
+  await prisma.upload.deleteMany();
   await prisma.user.deleteMany();
   await prisma.address.deleteMany();
 
