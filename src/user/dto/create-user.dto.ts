@@ -6,8 +6,58 @@ import {
   IsOptional,
   IsArray,
   IsBoolean,
+  IsObject,
+  IsNumber,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+
+export class AddressDto {
+  @ApiProperty({ example: 'Rua Amílcar Cabral', description: 'Street name', required: false })
+  @IsOptional()
+  @IsString()
+  street?: string;
+
+  @ApiProperty({ example: '123', description: 'House or apartment number', required: false })
+  @IsOptional()
+  @IsString()
+  number?: string;
+
+  @ApiProperty({ example: 'Ingombota', description: 'District name', required: false })
+  @IsOptional()
+  @IsString()
+  district?: string;
+
+  @ApiProperty({ example: 'Luanda', description: 'City name', required: false })
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @ApiProperty({ example: 'Luanda', description: 'Province name', required: false })
+  @IsOptional()
+  @IsString()
+  province?: string;
+
+  @ApiProperty({ example: 'Angola', description: 'Country name', required: false })
+  @IsOptional()
+  @IsString()
+  country?: string;
+
+  @ApiProperty({ example: -8.8390, description: 'Latitude', required: false })
+  @IsOptional()
+  @IsNumber()
+  latitude?: number;
+
+  @ApiProperty({ example: 13.2894, description: 'Longitude', required: false })
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
+
+  @ApiProperty({ example: 'Rua Amílcar Cabral, 123, Ingombota, Luanda, Luanda', description: 'Formatted address', required: false })
+  @IsOptional()
+  @IsString()
+  formattedAddress?: string;
+}
 
 export class CreateUserDto {
   @ApiProperty({ example: 'John Doe', description: 'Full name of the user' })
@@ -148,4 +198,15 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   companyCoverImage?: string;
+
+  @ApiProperty({
+    description: 'User address information',
+    required: false,
+    type: AddressDto,
+  })
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => AddressDto)
+  address?: AddressDto;
 }

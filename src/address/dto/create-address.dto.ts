@@ -1,39 +1,51 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsNotEmpty, Min, Max } from 'class-validator';
 
 export class CreateAddressDto {
-  @ApiProperty({ example: '123 Main St', description: 'Street name' })
+  @ApiProperty({ example: 'Rua da Independência', description: 'Street name', required: false })
   @IsOptional()
   @IsString()
-  street: string;
+  street?: string;
 
-  @ApiProperty({ example: '42', description: 'House or apartment number' })
+  @ApiProperty({ example: '123', description: 'House or apartment number', required: false })
   @IsOptional()
   @IsString()
-  number: string;
+  number?: string;
 
-  @ApiProperty({ example: 'Downtown', description: 'District name' })
+  @ApiProperty({ example: 'Maianga', description: 'District/neighborhood name', required: false })
   @IsOptional()
   @IsString()
-  district: string;
+  district?: string;
 
-  @ApiProperty({ example: 'Lisbon', description: 'City' })
-  @IsOptional()
+  @ApiProperty({ example: 'Luanda', description: 'City/Municipality name' })
+  @IsNotEmpty({ message: 'Cidade é obrigatória' })
   @IsString()
   city: string;
 
-  @ApiProperty({ example: 'Lisbon', description: 'Province' })
-  @IsOptional()
+  @ApiProperty({ example: 'Luanda', description: 'Province name' })
+  @IsNotEmpty({ message: 'Província é obrigatória' })
   @IsString()
   province: string;
 
-  @ApiProperty({ example: 38.7169, description: 'Latitude', required: false })
+  @ApiProperty({
+    example: -8.8390,
+    description: 'Latitude coordinate (must be within Angola bounds)',
+    required: false
+  })
   @IsOptional()
-  @IsNumber()
+  @IsNumber({}, { message: 'Latitude deve ser um número válido' })
+  @Min(-18.5, { message: 'Latitude deve estar dentro dos limites de Angola' })
+  @Max(-4.5, { message: 'Latitude deve estar dentro dos limites de Angola' })
   latitude?: number;
 
-  @ApiProperty({ example: -9.1399, description: 'Longitude', required: false })
+  @ApiProperty({
+    example: 13.2894,
+    description: 'Longitude coordinate (must be within Angola bounds)',
+    required: false
+  })
   @IsOptional()
-  @IsNumber()
+  @IsNumber({}, { message: 'Longitude deve ser um número válido' })
+  @Min(11.5, { message: 'Longitude deve estar dentro dos limites de Angola' })
+  @Max(24.5, { message: 'Longitude deve estar dentro dos limites de Angola' })
   longitude?: number;
 }

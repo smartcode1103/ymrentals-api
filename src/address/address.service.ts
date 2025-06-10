@@ -7,7 +7,39 @@ export class AddressService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createAddressDto: CreateAddressDto) {
-    return this.prisma.address.create({ data: createAddressDto });
+    // Validações aprimoradas para dados de endereço
+    if (!createAddressDto.province || !createAddressDto.city) {
+      throw new Error('Província e cidade são obrigatórias');
+    }
+
+    // Validar coordenadas se fornecidas
+    if (createAddressDto.latitude !== undefined && createAddressDto.longitude !== undefined) {
+      if (createAddressDto.latitude === 0 || createAddressDto.longitude === 0) {
+        throw new Error('Coordenadas inválidas (0,0) não são permitidas');
+      }
+
+      // Validar se as coordenadas estão dentro de Angola (aproximadamente)
+      if (createAddressDto.latitude < -18.5 || createAddressDto.latitude > -4.5 ||
+          createAddressDto.longitude < 11.5 || createAddressDto.longitude > 24.5) {
+        throw new Error('Coordenadas devem estar dentro de Angola');
+      }
+    }
+
+    console.log('📍 Criando endereço:', {
+      province: createAddressDto.province,
+      city: createAddressDto.city,
+      district: createAddressDto.district,
+      hasCoordinates: !!(createAddressDto.latitude && createAddressDto.longitude)
+    });
+
+    try {
+      const address = await this.prisma.address.create({ data: createAddressDto });
+      console.log('✅ Endereço criado com sucesso:', address.id);
+      return address;
+    } catch (error) {
+      console.error('❌ Erro ao criar endereço:', error);
+      throw new Error('Erro ao salvar endereço na base de dados');
+    }
   }
 
   async findAll() {
@@ -18,6 +50,49 @@ export class AddressService {
     const address = await this.prisma.address.findUnique({ where: { id } });
     if (!address) throw new NotFoundException('Address not found');
     return address;
+  }
+
+  async update(id: string, updateAddressDto: CreateAddressDto) {
+    // Verificar se o endereço existe
+    await this.findOne(id);
+
+    // Aplicar as mesmas validações do create
+    if (!updateAddressDto.province || !updateAddressDto.city) {
+      throw new Error('Província e cidade são obrigatórias');
+    }
+
+    // Validar coordenadas se fornecidas
+    if (updateAddressDto.latitude !== undefined && updateAddressDto.longitude !== undefined) {
+      if (updateAddressDto.latitude === 0 || updateAddressDto.longitude === 0) {
+        throw new Error('Coordenadas inválidas (0,0) não são permitidas');
+      }
+
+      // Validar se as coordenadas estão dentro de Angola (aproximadamente)
+      if (updateAddressDto.latitude < -18.5 || updateAddressDto.latitude > -4.5 ||
+          updateAddressDto.longitude < 11.5 || updateAddressDto.longitude > 24.5) {
+        throw new Error('Coordenadas devem estar dentro de Angola');
+      }
+    }
+
+    console.log('📍 Atualizando endereço:', {
+      id,
+      province: updateAddressDto.province,
+      city: updateAddressDto.city,
+      district: updateAddressDto.district,
+      hasCoordinates: !!(updateAddressDto.latitude && updateAddressDto.longitude)
+    });
+
+    try {
+      const updatedAddress = await this.prisma.address.update({
+        where: { id },
+        data: updateAddressDto
+      });
+      console.log('✅ Endereço atualizado com sucesso:', updatedAddress.id);
+      return updatedAddress;
+    } catch (error) {
+      console.error('❌ Erro ao atualizar endereço:', error);
+      throw new Error('Erro ao atualizar endereço na base de dados');
+    }
   }
 
   async remove(id: string) {

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, Query, Put } from '@nestjs/common';
 import { AddressService } from './address.service';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
@@ -70,6 +70,12 @@ export class AddressController {
   @ApiOperation({ summary: 'Get address by ID' })
   async findOne(@Param('id') id: string) {
     return this.addressService.findOne(id);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Update address by ID' })
+  async update(@Param('id') id: string, @Body() updateAddressDto: CreateAddressDto) {
+    return this.addressService.update(id, updateAddressDto);
   }
 
   @Delete(':id')

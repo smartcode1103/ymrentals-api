@@ -38,9 +38,34 @@ export class UserService {
       accountStatus = 'PENDING';
     }
 
+    // Criar endereço se fornecido
+    let addressId: string | undefined;
+    if (createUserDto.address && (
+      createUserDto.address.street ||
+      createUserDto.address.district ||
+      createUserDto.address.city ||
+      createUserDto.address.province
+    )) {
+      const address = await this.prisma.address.create({
+        data: {
+          street: createUserDto.address.street || null,
+          number: createUserDto.address.number || null,
+          district: createUserDto.address.district || null,
+          city: createUserDto.address.city || null,
+          province: createUserDto.address.province || null,
+          latitude: createUserDto.address.latitude || null,
+          longitude: createUserDto.address.longitude || null,
+        }
+      });
+      addressId = address.id;
+    }
+
+    // Preparar dados do usuário removendo o campo address do spread
+    const { address, ...userDataWithoutAddress } = createUserDto;
+
     const user = await this.prisma.user.create({
       data: {
-        ...createUserDto,
+        ...userDataWithoutAddress,
         password: hashedPassword,
         userType: createUserDto.userType?.toUpperCase() as UserType || UserType.TENANT,
         accountStatus,
@@ -48,6 +73,8 @@ export class UserService {
         companyName: createUserDto.isCompany ? createUserDto.companyName : null,
         companyAddress: createUserDto.isCompany ? createUserDto.companyAddress : null,
         companyType: createUserDto.isCompany ? createUserDto.companyType as any : null,
+        // Associar endereço se criado
+        addressId: addressId || null,
       },
     });
 
