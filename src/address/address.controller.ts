@@ -29,8 +29,34 @@ export class AddressController {
   @Get('locations')
   @ApiOperation({ summary: 'Get locations by type' })
   @ApiQuery({ name: 'type', enum: ['province', 'city', 'district'], required: true })
-  async getLocationsByType(@Query('type') type: 'province' | 'city' | 'district') {
-    return this.addressService.getLocationsByType(type);
+  @ApiQuery({ name: 'parentId', description: 'Parent location ID for hierarchical navigation', required: false })
+  async getLocationsByType(
+    @Query('type') type: 'province' | 'city' | 'district',
+    @Query('parentId') parentId?: string
+  ) {
+    return this.addressService.getLocationsByType(type, parentId);
+  }
+
+  @Get('hierarchy/:parentId/children')
+  @ApiOperation({ summary: 'Get child locations for hierarchical navigation' })
+  @ApiQuery({ name: 'type', enum: ['city', 'district'], required: true })
+  async getChildLocations(
+    @Param('parentId') parentId: string,
+    @Query('type') type: 'city' | 'district'
+  ) {
+    return this.addressService.getChildLocations(parentId, type);
+  }
+
+  @Get('hierarchy/:locationId/equipment')
+  @ApiOperation({ summary: 'Get equipment in a specific location' })
+  @ApiQuery({ name: 'page', description: 'Page number', required: false })
+  @ApiQuery({ name: 'limit', description: 'Items per page', required: false })
+  async getEquipmentByLocation(
+    @Param('locationId') locationId: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number
+  ) {
+    return this.addressService.getEquipmentByLocation(locationId, page, limit);
   }
 
   @Get('search')

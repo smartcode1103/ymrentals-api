@@ -69,7 +69,7 @@ export class AddressService {
     };
   }
 
-  async getLocationsByType(type: 'province' | 'city' | 'district') {
+  async getLocationsByType(type: 'province' | 'city' | 'district', parentId?: string) {
     const results: any[] = [];
 
     if (type === 'province') {
@@ -103,19 +103,32 @@ export class AddressService {
           type: 'province',
           latitude: address.latitude,
           longitude: address.longitude,
-          equipmentCount
+          equipmentCount,
+          hasChildren: true
         });
       }
     } else if (type === 'city') {
+      let whereClause: any = {
+        city: { not: null },
+        latitude: { not: null },
+        longitude: { not: null },
+        Equipment: { some: { moderationStatus: 'APPROVED', deletedAt: null } }
+      };
+
+      // Se parentId for fornecido, filtrar por província
+      if (parentId) {
+        const provinceName = parentId.replace('province-', '').replace(/-/g, ' ');
+        whereClause.province = {
+          equals: provinceName,
+          mode: 'insensitive'
+        };
+      }
+
       const cities = await this.prisma.address.findMany({
-        where: {
-          city: { not: null },
-          latitude: { not: null },
-          longitude: { not: null },
-          Equipment: { some: { moderationStatus: 'APPROVED', deletedAt: null } }
-        },
+        where: whereClause,
         select: {
           city: true,
+          province: true,
           latitude: true,
           longitude: true
         },
@@ -127,7 +140,10 @@ export class AddressService {
           where: {
             moderationStatus: 'APPROVED',
             deletedAt: null,
-            Address: { city: address.city }
+            Address: {
+              city: address.city,
+              ...(parentId && { province: address.province })
+            }
           }
         });
 
@@ -137,46 +153,197 @@ export class AddressService {
           type: 'city',
           latitude: address.latitude,
           longitude: address.longitude,
-          equipmentCount
+          equipmentCount,
+          parentId: parentId || `province-${address.province?.toLowerCase().replace(/\s+/g, '-')}`,
+          hasChildren: true
         });
       }
     } else if (type === 'district') {
+      let whereClause: any = {
+        district: { not: null },
+        city: { not: null },
+        latitude: { not: null },
+        longitude: { not: null },
+        Equipment: { some: { moderationStatus: 'APPROVED', deletedAt: null } }
+      };
+
+      // Se parentId for fornecido, filtrar por cidade
+      if (parentId) {
+        const cityName = parentId.replace('city-', '').replace(/-/g, ' ');
+        whereClause.city = {
+          equals: cityName,
+          mode: 'insensitive'
+        };
+      }
+
       const districts = await this.prisma.address.findMany({
-        where: {
-          district: { not: null },
-          latitude: { not: null },
-          longitude: { not: null },
-          Equipment: { some: { moderationStatus: 'APPROVED', deletedAt: null } }
-        },
+        where: whereClause,
         select: {
           district: true,
+          city: true,
+          province: true,
           latitude: true,
           longitude: true
         },
-        distinct: ['district']
+        distinct: ['district', 'city'] // Incluir city no distinct para evitar duplicatas
       });
 
       for (const address of districts) {
+        // Validar se os dados essenciais estão presentes
+        if (!address.district || !address.city || !address.latitude || !address.longitude) {
+          console.warn('Distrito com dados incompletos ignorado:', {
+            district: address.district,
+            city: address.city,
+            latitude: address.latitude,
+            longitude: address.longitude
+          });
+          continue;
+        }
+
         const equipmentCount = await this.prisma.equipment.count({
           where: {
             moderationStatus: 'APPROVED',
             deletedAt: null,
-            Address: { district: address.district }
+            Address: {
+              district: address.district,
+              city: address.city // Sempre incluir a cidade na contagem
+            }
           }
         });
 
+        // Sempre criar ID único que inclui a cidade para evitar conflitos
+        const districtId = `district-${address.district.toLowerCase().replace(/\s+/g, '-')}-${address.city.toLowerCase().replace(/\s+/g, '-')}`;
+
         results.push({
-          id: `district-${address.district?.toLowerCase().replace(/\s+/g, '-')}`,
+          id: districtId,
           name: address.district,
           type: 'district',
           latitude: address.latitude,
           longitude: address.longitude,
-          equipmentCount
+          equipmentCount,
+          parentId: parentId || `city-${address.city.toLowerCase().replace(/\s+/g, '-')}`,
+          hasChildren: false
         });
       }
     }
 
     return results.filter(loc => loc.latitude !== 0 && loc.longitude !== 0);
+  }
+
+  async getChildLocations(parentId: string, type: 'city' | 'district') {
+    if (type === 'city') {
+      // Buscar cidades de uma província específica
+      return this.getLocationsByType('city', parentId);
+    } else if (type === 'district') {
+      // Buscar distritos de uma cidade específica
+      return this.getLocationsByType('district', parentId);
+    }
+    return [];
+  }
+
+  async getEquipmentByLocation(locationId: string, page: number = 1, limit: number = 10) {
+    const parts = locationId.split('-');
+    const locationType = parts[0];
+
+    let whereClause: any = {
+      moderationStatus: 'APPROVED',
+      deletedAt: null,
+      Address: {}
+    };
+
+    // Definir filtro baseado no tipo de localização
+    switch (locationType) {
+      case 'province':
+        const provinceName = parts.slice(1).join(' ').replace(/-/g, ' ');
+        whereClause.Address.province = {
+          equals: provinceName,
+          mode: 'insensitive'
+        };
+        break;
+      case 'city':
+        const cityName = parts.slice(1).join(' ').replace(/-/g, ' ');
+        whereClause.Address.city = {
+          equals: cityName,
+          mode: 'insensitive'
+        };
+        break;
+      case 'district':
+        // Para distritos, o ID sempre tem formato: district-nome-distrito-nome-cidade
+        if (parts.length >= 3) {
+          const districtName = parts[1].replace(/-/g, ' ');
+          const cityName = parts.slice(2).join(' ').replace(/-/g, ' ');
+          whereClause.Address.district = {
+            equals: districtName,
+            mode: 'insensitive'
+          };
+          whereClause.Address.city = {
+            equals: cityName,
+            mode: 'insensitive'
+          };
+        } else {
+          // Formato antigo para compatibilidade: district-nome-distrito
+          const districtName = parts.slice(1).join(' ').replace(/-/g, ' ');
+          whereClause.Address.district = {
+            equals: districtName,
+            mode: 'insensitive'
+          };
+          console.warn(`ID de distrito no formato antigo: ${locationId}. Considere usar o formato district-nome-distrito-nome-cidade`);
+        }
+        break;
+      default:
+        throw new Error('Tipo de localização inválido');
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [equipment, total] = await Promise.all([
+      this.prisma.equipment.findMany({
+        where: whereClause,
+        include: {
+          Category: true,
+          Address: true,
+          owner: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              profilePicture: true
+            }
+          }
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' }
+      }),
+      this.prisma.equipment.count({ where: whereClause })
+    ]);
+
+    // Determinar o nome da localização baseado no tipo
+    let locationName = '';
+    switch (locationType) {
+      case 'province':
+        locationName = parts.slice(1).join(' ').replace(/-/g, ' ');
+        break;
+      case 'city':
+        locationName = parts.slice(1).join(' ').replace(/-/g, ' ');
+        break;
+      case 'district':
+        locationName = parts[1].replace(/-/g, ' ');
+        break;
+    }
+
+    return {
+      data: equipment,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      location: {
+        id: locationId,
+        type: locationType,
+        name: locationName
+      }
+    };
   }
 
   async searchLocations(query: string) {
@@ -291,15 +458,16 @@ export class AddressService {
       },
       select: {
         district: true,
+        city: true,
         latitude: true,
         longitude: true
       },
-      distinct: ['district']
+      distinct: ['district', 'city']
     });
 
     for (const address of districts) {
-      if (address.district) {
-        const key = `district-${address.district}`;
+      if (address.district && address.city) {
+        const key = `district-${address.district}-${address.city}`;
         if (!seen.has(key)) {
           seen.add(key);
 
@@ -307,12 +475,15 @@ export class AddressService {
             where: {
               moderationStatus: 'APPROVED',
               deletedAt: null,
-              Address: { district: address.district }
+              Address: {
+                district: address.district,
+                city: address.city
+              }
             }
           });
 
           results.push({
-            id: `district-${address.district.toLowerCase().replace(/\s+/g, '-')}`,
+            id: `district-${address.district.toLowerCase().replace(/\s+/g, '-')}-${address.city.toLowerCase().replace(/\s+/g, '-')}`,
             name: address.district,
             type: 'district',
             latitude: address.latitude,
