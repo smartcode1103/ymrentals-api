@@ -25,4 +25,20 @@ export class HealthController {
       timestamp: new Date().toISOString()
     };
   }
+
+  @Get('env')
+  @ApiOperation({ summary: 'Environment check endpoint' })
+  @ApiResponse({ status: 200, description: 'Environment variables status' })
+  env() {
+    return {
+      status: 'ok',
+      environment: {
+        NODE_ENV: process.env.NODE_ENV || 'not-set',
+        PORT: process.env.PORT || 'not-set',
+        DATABASE_URL: process.env.DATABASE_URL ? 'configured' : 'not-set',
+        JWT_SECRET: process.env.JWT_SECRET ? 'configured' : 'not-set',
+      },
+      timestamp: new Date().toISOString()
+    };
+  }
 }
