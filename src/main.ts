@@ -41,8 +41,8 @@ async function bootstrap() {
     // Definir porta do servidor via variável de ambiente ou padrão 3000
     const PORT = process.env.PORT || 3000;
     // Aumentar limite para 50MB, por exemplo
-    app.use(bodyParser.json({ limit: '10mb' }));
-    app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+    app.use(bodyParser.json({ limit: '50mb' }));
+    app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
     await app.listen(PORT, '0.0.0.0');
     console.log(`🚀 Servidor rodando em http://0.0.0.0:${PORT}`);
